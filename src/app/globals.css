@@ -95,50 +95,10 @@
     background: hsl(var(--muted-foreground) / 0.3);
   }
   
-  /* 代码样式 */
-  :not(pre) > code {
-    @apply bg-muted/80 text-foreground px-1.5 py-0.5 rounded-md text-sm font-mono border border-border/40;
-  }
-  
-  pre {
-    @apply bg-muted/40 border border-border/40 rounded-lg p-4 overflow-x-auto;
-  }
-  
-  /* 表格样式 */
-  table {
-    @apply w-full border-collapse border border-border/40;
-  }
-  
-  th, td {
-    @apply border border-border/40 px-4 py-2 text-left;
-  }
-  
-  th {
-    @apply bg-muted/40 font-semibold;
-  }
-  
-  /* 引用块 */
-  blockquote {
-    @apply border-l-4 border-primary/30 pl-4 italic bg-muted/20 py-2 rounded-r-lg;
-  }
-  
   /* 分割线 */
   hr {
     @apply border-border/30 my-8;
   }
-  
-  /* 输入框样式 */
-  /* input[type="text"],
-  input[type="search"],
-  textarea {
-    @apply bg-background/90 border border-border/60;
-  }
-
-  input[type="text"]:focus,
-  input[type="search"]:focus,
-  textarea:focus {
-    @apply outline-none ring-2 ring-primary/30 border-primary/60;
-  } */
 }
 
 @layer utilities {
@@ -149,31 +109,6 @@
 
   .dark .scrollbar-thin::-webkit-scrollbar-thumb:hover {
     background: hsl(var(--border));
-  }
-  
-  .dark :not(pre) > code {
-    @apply bg-muted/60 border-border/30;
-  }
-  
-  .dark pre {
-    @apply bg-muted/30 border-border/20;
-  }
-  
-  .dark table {
-    @apply border-border/20;
-  }
-  
-  .dark th,
-  .dark td {
-    @apply border-border/20;
-  }
-  
-  .dark th {
-    @apply bg-muted/20;
-  }
-  
-  .dark blockquote {
-    @apply bg-muted/10 border-primary/40;
   }
   
   .dark hr {

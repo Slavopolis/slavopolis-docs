@@ -2,61 +2,54 @@
 
 import { cn } from '@/lib/utils';
 import {
+    CheckCircle2,
+    Clock,
     Download,
     Edit3,
-    Eye, EyeOff,
-    FileAudio, FileText,
-    List,
-    Loader2,
-    Maximize2,
+    FileAudio,
+    FileText,
+    Keyboard,
     Music,
     Pause,
     Play,
     RefreshCw,
-    Save,
     Settings,
-    SkipBack, SkipForward,
+    SkipBack,
+    SkipForward,
+    Target,
+    Timer,
     Upload,
-    Volume1,
     Volume2,
     VolumeX,
-    X
+    X,
+    Zap
 } from 'lucide-react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 
 interface LyricLine {
-  time: number;
+  id: string;
   text: string;
+  startTime: number | null;
+  endTime?: number | null;
+  isMarked: boolean;
 }
 
 interface UploadedFile {
   file: File;
-  type: 'audio' | 'lyrics';
-  url?: string;
+  url: string;
 }
 
 export function LrcGenerator() {
-  const [uploadedFiles, setUploadedFiles] = useState<{
-    audio?: UploadedFile;
-    lyrics?: UploadedFile;
-  }>({});
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [generatedLrc, setGeneratedLrc] = useState<string>('');
-  const [lrcLines, setLrcLines] = useState<LyricLine[]>([]);
-  const [dragOver, setDragOver] = useState<'audio' | 'lyrics' | null>(null);
+  // 文件状态
+  const [audioFile, setAudioFile] = useState<UploadedFile | null>(null);
+  const [dragOver, setDragOver] = useState(false);
   
-  // 歌词预览和编辑
-  const [lyricsPreview, setLyricsPreview] = useState<string>('');
-  const [showLyricsPreview, setShowLyricsPreview] = useState(false);
-  const [isEditingLrc, setIsEditingLrc] = useState(false);
-  const [editableLrc, setEditableLrc] = useState<string>('');
+  // 歌词编辑状态
+  const [lyrics, setLyrics] = useState<LyricLine[]>([]);
+  const [currentLineIndex, setCurrentLineIndex] = useState(0);
+  const [lyricsText, setLyricsText] = useState('');
   
-  // 弹窗预览
-  const [showLyricsModal, setShowLyricsModal] = useState(false);
-  const [showLrcModal, setShowLrcModal] = useState(false);
-  
-  // 音频播放器状态
+  // 音频播放状态
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -64,78 +57,78 @@ export function LrcGenerator() {
   const [isMuted, setIsMuted] = useState(false);
   const [playbackRate, setPlaybackRate] = useState(1);
   
-  // LRC测试播放器状态
-  const [testPlayerVisible, setTestPlayerVisible] = useState(false);
-  const [currentLyricIndex, setCurrentLyricIndex] = useState(-1);
-  const [testIsPlaying, setTestIsPlaying] = useState(false);
-  const [testCurrentTime, setTestCurrentTime] = useState(0);
-  const [testDuration, setTestDuration] = useState(0);
-  const [testVolume, setTestVolume] = useState(0.8);
-  const [testIsMuted, setTestIsMuted] = useState(false);
-  const [userScrolled, setUserScrolled] = useState(false);
-  const [scrollTimeout, setScrollTimeout] = useState<NodeJS.Timeout | null>(null);
-  const [isAutoScrolling, setIsAutoScrolling] = useState(false);
-  const [lastAutoScrollTime, setLastAutoScrollTime] = useState(0);
+  // UI 状态
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [showKeyboardGuide, setShowKeyboardGuide] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
+  const [markedCount, setMarkedCount] = useState(0);
+  const [autoAdvance, setAutoAdvance] = useState(true);
   
-  const audioInputRef = useRef<HTMLInputElement>(null);
-  const lyricsInputRef = useRef<HTMLInputElement>(null);
+  // LRC编辑状态
+  const [isEditingLrc, setIsEditingLrc] = useState(false);
+  const [editableLrcContent, setEditableLrcContent] = useState('');
+  
+  // 确认对话框状态
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  
+  // 实时预览状态
+  const [previewCurrentLyricIndex, setPreviewCurrentLyricIndex] = useState(-1);
+  const [userScrolledPreview, setUserScrolledPreview] = useState(false);
+  const [previewScrollTimeout, setPreviewScrollTimeout] = useState<NodeJS.Timeout | null>(null);
+  const [isPreviewPlaying, setIsPreviewPlaying] = useState(false);
+  const [isAutoScrolling, setIsAutoScrolling] = useState(false);
+  
+  // 引用
   const audioRef = useRef<HTMLAudioElement>(null);
-  const testAudioRef = useRef<HTMLAudioElement>(null);
-  const lyricsContainerRef = useRef<HTMLDivElement>(null);
-
-  // 添加自定义CSS样式
-  React.useEffect(() => {
+  const lyricsInputRef = useRef<HTMLTextAreaElement>(null);
+  const currentLineRef = useRef<HTMLDivElement>(null);
+  const previewAudioRef = useRef<HTMLAudioElement>(null);
+  const previewLyricsRef = useRef<HTMLDivElement>(null);
+  
+  // 添加自定义滚动条样式
+  useEffect(() => {
     const style = document.createElement('style');
     style.textContent = `
-      .slider::-webkit-slider-thumb {
-        appearance: none;
-        height: 16px;
-        width: 16px;
-        border-radius: 50%;
-        background: rgb(59 130 246);
-        cursor: pointer;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-        transition: all 0.2s ease;
+      .custom-scrollbar::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
       }
       
-      .slider::-webkit-slider-thumb:hover {
-        transform: scale(1.2);
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+      .custom-scrollbar::-webkit-scrollbar-track {
+        background: rgb(241 245 249);
+        border-radius: 4px;
       }
       
-      .slider::-moz-range-thumb {
-        height: 16px;
-        width: 16px;
-        border-radius: 50%;
-        background: rgb(59 130 246);
-        cursor: pointer;
-        border: none;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+      .dark .custom-scrollbar::-webkit-scrollbar-track {
+        background: rgb(51 65 85);
       }
       
-      .scrollbar-thin::-webkit-scrollbar {
-        width: 6px;
+      .custom-scrollbar::-webkit-scrollbar-thumb {
+        background: linear-gradient(135deg, rgb(59 130 246), rgb(147 51 234));
+        border-radius: 4px;
+        border: 1px solid rgb(226 232 240);
       }
       
-      .scrollbar-thin::-webkit-scrollbar-track {
+      .dark .custom-scrollbar::-webkit-scrollbar-thumb {
+        border-color: rgb(71 85 105);
+      }
+      
+      .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+        background: linear-gradient(135deg, rgb(37 99 235), rgb(124 58 237));
+        transform: scale(1.1);
+      }
+      
+      .custom-scrollbar::-webkit-scrollbar-corner {
         background: transparent;
       }
       
-      .scrollbar-thin::-webkit-scrollbar-thumb {
-        background-color: rgb(148 163 184);
-        border-radius: 3px;
+      .custom-scrollbar {
+        scrollbar-width: thin;
+        scrollbar-color: rgb(59 130 246) rgb(241 245 249);
       }
       
-      .scrollbar-thin::-webkit-scrollbar-thumb:hover {
-        background-color: rgb(100 116 139);
-      }
-      
-      .dark .scrollbar-thin::-webkit-scrollbar-thumb {
-        background-color: rgb(71 85 105);
-      }
-      
-      .dark .scrollbar-thin::-webkit-scrollbar-thumb:hover {
-        background-color: rgb(51 65 85);
+      .dark .custom-scrollbar {
+        scrollbar-color: rgb(147 51 234) rgb(51 65 85);
       }
     `;
     document.head.appendChild(style);
@@ -144,93 +137,87 @@ export function LrcGenerator() {
       document.head.removeChild(style);
     };
   }, []);
+  
+  // 生成唯一ID
+  const generateId = useCallback(() => {
+    return Math.random().toString(36).substr(2, 9);
+  }, []);
+  
+  // 处理文件上传
+  const handleFileUpload = useCallback((file: File) => {
+    const url = URL.createObjectURL(file);
+    setAudioFile({ file, url });
+    setIsPlaying(false);
+    setCurrentTime(0);
+    setDuration(0);
+  }, []);
 
-  // 处理文件拖拽
-  const handleDragOver = useCallback((e: React.DragEvent, type: 'audio' | 'lyrics') => {
+  // 文件拖拽处理
+  const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
-    setDragOver(type);
+    setDragOver(true);
   }, []);
 
   const handleDragLeave = useCallback((e: React.DragEvent) => {
     e.preventDefault();
-    setDragOver(null);
+    setDragOver(false);
   }, []);
 
-  const handleDrop = useCallback((e: React.DragEvent, type: 'audio' | 'lyrics') => {
+  const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
-    setDragOver(null);
+    setDragOver(false);
     
     const files = Array.from(e.dataTransfer.files);
-    const file = files[0];
+    const audioFile = files.find(file => file.type.startsWith('audio/'));
     
-    if (!file) return;
-    
-    if (type === 'audio' && file.type.startsWith('audio/')) {
-      handleFileUpload(file, 'audio');
-    } else if (type === 'lyrics' && file.type === 'text/plain') {
-      handleFileUpload(file, 'lyrics');
-    }
-  }, []);
-
-  // 处理文件上传
-  const handleFileUpload = useCallback(async (file: File, type: 'audio' | 'lyrics') => {
-    const url = URL.createObjectURL(file);
-    setUploadedFiles(prev => ({
-      ...prev,
-      [type]: { file, type, url }
-    }));
-    
-    // 如果是歌词文件，自动预览内容
-    if (type === 'lyrics') {
-      try {
-        const content = await file.text();
-        setLyricsPreview(content);
-        setShowLyricsPreview(true);
-      } catch (error) {
-        console.error('读取歌词文件失败:', error);
-      }
-    }
-    
-    // 如果是音频文件，重置播放器状态
-    if (type === 'audio') {
-      setIsPlaying(false);
-      setCurrentTime(0);
-      setDuration(0);
-    }
-  }, []);
-
-  // 文件选择处理
-  const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>, type: 'audio' | 'lyrics') => {
-    const file = e.target.files?.[0];
-    if (file) {
-      handleFileUpload(file, type);
+    if (audioFile) {
+      handleFileUpload(audioFile);
     }
   }, [handleFileUpload]);
 
   // 移除文件
-  const removeFile = useCallback((type: 'audio' | 'lyrics') => {
-    setUploadedFiles(prev => {
-      const newFiles = { ...prev };
-      if (newFiles[type]?.url) {
-        URL.revokeObjectURL(newFiles[type]!.url!);
-      }
-      delete newFiles[type];
-      return newFiles;
-    });
-    
-    if (type === 'audio') {
-      setIsPlaying(false);
-      setCurrentTime(0);
-      setDuration(0);
+  const removeFile = useCallback(() => {
+    if (audioFile?.url) {
+      URL.revokeObjectURL(audioFile.url);
     }
-    
-    if (type === 'lyrics') {
-      setLyricsPreview('');
-      setShowLyricsPreview(false);
-    }
-  }, []);
+    setAudioFile(null);
+    setIsPlaying(false);
+    setCurrentTime(0);
+    setDuration(0);
+  }, [audioFile]);
 
-  // 音频播放器控制函数
+  // 解析歌词文本
+  const parseLyricsText = useCallback((text: string) => {
+    const lines = text.split('\n')
+      .map(line => line.trim())
+      .filter(line => line.length > 0);
+    
+    const newLyrics: LyricLine[] = lines.map(text => ({
+      id: generateId(),
+      text,
+      startTime: null,
+      endTime: null,
+      isMarked: false
+    }));
+    
+    setLyrics(newLyrics);
+    setCurrentLineIndex(0);
+    setMarkedCount(0);
+  }, [generateId]);
+
+  // 处理歌词输入变化
+  const handleLyricsChange = useCallback((value: string) => {
+    setLyricsText(value);
+    if (value.trim()) {
+      parseLyricsText(value);
+    } else {
+      setLyrics([]);
+      setCurrentLineIndex(0);
+      setMarkedCount(0);
+    }
+  }, [parseLyricsText]);
+
+  // 音频控制函数
   const togglePlay = useCallback(() => {
     if (!audioRef.current) return;
     
@@ -252,25 +239,21 @@ export function LrcGenerator() {
     if (audioRef.current) {
       setDuration(audioRef.current.duration);
       audioRef.current.playbackRate = playbackRate;
+      audioRef.current.volume = volume;
     }
-  }, [playbackRate]);
+  }, [playbackRate, volume]);
 
-  const handleSeek = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const time = parseFloat(e.target.value);
+  const handleSeek = useCallback((time: number) => {
     if (audioRef.current) {
       audioRef.current.currentTime = time;
       setCurrentTime(time);
     }
   }, []);
 
-  const handleVolumeChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const vol = parseFloat(e.target.value);
-    setVolume(vol);
-    setIsMuted(vol === 0);
-    if (audioRef.current) {
-      audioRef.current.volume = vol;
-    }
-  }, []);
+  const skipTime = useCallback((seconds: number) => {
+    const newTime = Math.max(0, Math.min(duration, currentTime + seconds));
+    handleSeek(newTime);
+  }, [currentTime, duration, handleSeek]);
 
   const toggleMute = useCallback(() => {
     if (!audioRef.current) return;
@@ -284,1089 +267,1332 @@ export function LrcGenerator() {
     }
   }, [isMuted, volume]);
 
-  const skipTime = useCallback((seconds: number) => {
-    if (!audioRef.current) return;
+  // 标记当前行时间
+  const markCurrentLine = useCallback(() => {
+    if (currentLineIndex >= lyrics.length) return;
     
-    const newTime = Math.max(0, Math.min(duration, currentTime + seconds));
-    audioRef.current.currentTime = newTime;
-    setCurrentTime(newTime);
-  }, [currentTime, duration]);
-
-  const changePlaybackRate = useCallback((rate: number) => {
-    setPlaybackRate(rate);
-    if (audioRef.current) {
-      audioRef.current.playbackRate = rate;
+    const newLyrics = [...lyrics];
+    const currentLine = newLyrics[currentLineIndex];
+    
+    if (currentLine && !currentLine.isMarked) {
+      currentLine.startTime = currentTime;
+      currentLine.isMarked = true;
+      newLyrics[currentLineIndex] = currentLine;
+      
+      setLyrics(newLyrics);
+      setMarkedCount(prev => prev + 1);
+      
+      // 自动跳转到下一行
+      if (autoAdvance && currentLineIndex < lyrics.length - 1) {
+        setCurrentLineIndex(prev => prev + 1);
+      }
     }
-  }, []);
+  }, [currentLineIndex, lyrics, currentTime, autoAdvance]);
 
+  // 清除标记
+  const clearMark = useCallback((index: number) => {
+    const newLyrics = [...lyrics];
+    const line = newLyrics[index];
+    
+    if (line && line.isMarked) {
+      line.startTime = null;
+      line.isMarked = false;
+      newLyrics[index] = line;
+      
+      setLyrics(newLyrics);
+      setMarkedCount(prev => prev - 1);
+    }
+  }, [lyrics]);
+
+  // 调整时间
+  const adjustTime = useCallback((index: number, adjustment: number) => {
+    const newLyrics = [...lyrics];
+    const line = newLyrics[index];
+    
+    if (line && line.startTime !== null) {
+      line.startTime = Math.max(0, line.startTime + adjustment);
+      newLyrics[index] = line;
+      setLyrics(newLyrics);
+    }
+  }, [lyrics]);
+
+  // 生成LRC格式
+  const generateLrcContent = useCallback(() => {
+    const header = [
+      `[ti:${audioFile?.file.name.replace(/\.[^/.]+$/, '') || '未知标题'}]`,
+      '[ar:未知艺术家]',
+      '[al:未知专辑]',
+      '[by:LRC制作工具]',
+      ''
+    ];
+    
+    const lrcLines = lyrics
+      .filter(line => line.isMarked && line.startTime !== null)
+      .sort((a, b) => (a.startTime || 0) - (b.startTime || 0))
+      .map(line => {
+        const time = line.startTime || 0;
+        const minutes = Math.floor(time / 60);
+        const seconds = Math.floor(time % 60);
+        const centiseconds = Math.floor((time % 1) * 100);
+        const timeTag = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}.${centiseconds.toString().padStart(2, '0')}`;
+        return `[${timeTag}]${line.text}`;
+      });
+    
+    return [...header, ...lrcLines].join('\n');
+  }, [audioFile, lyrics]);
+
+  // 下载LRC文件
+  const downloadLrc = useCallback(() => {
+    const content = editableLrcContent || generateLrcContent();
+    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${audioFile?.file.name.replace(/\.[^/.]+$/, '') || 'lyrics'}.lrc`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }, [editableLrcContent, generateLrcContent, audioFile]);
+
+  // 重置所有状态
+  const resetAll = useCallback(() => {
+    if (audioFile?.url) {
+      URL.revokeObjectURL(audioFile.url);
+    }
+    
+    // 清理定时器
+    if (previewScrollTimeout) {
+      clearTimeout(previewScrollTimeout);
+      setPreviewScrollTimeout(null);
+    }
+    
+    setAudioFile(null);
+    setLyrics([]);
+    setLyricsText('');
+    setCurrentLineIndex(0);
+    setMarkedCount(0);
+    setIsPlaying(false);
+    setCurrentTime(0);
+    setDuration(0);
+    setShowPreview(false);
+    setPreviewCurrentLyricIndex(-1);
+    setUserScrolledPreview(false);
+    setIsPreviewPlaying(false);
+    setIsAutoScrolling(false);
+    setIsEditingLrc(false);
+    setEditableLrcContent('');
+    setShowConfirmDialog(false);
+  }, [audioFile, previewScrollTimeout]);
+
+  // 组件卸载时清理定时器
+  useEffect(() => {
+    return () => {
+      if (previewScrollTimeout) {
+        clearTimeout(previewScrollTimeout);
+      }
+    };
+  }, [previewScrollTimeout]);
+
+  // 格式化时间显示
   const formatTime = useCallback((seconds: number): string => {
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
+    const ms = Math.floor((seconds % 1) * 100);
+    return `${mins}:${secs.toString().padStart(2, '0')}.${ms.toString().padStart(2, '0')}`;
   }, []);
 
-  // 解析歌词文件
-  const parseLyricsFile = useCallback(async (file: File): Promise<string[]> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const content = e.target?.result as string;
-        const lines = content.split('\n')
-          .map(line => line.trim())
-          .filter(line => line.length > 0);
-        resolve(lines);
-      };
-      reader.onerror = () => reject(new Error('读取歌词文件失败'));
-      reader.readAsText(file, 'utf-8');
-    });
-  }, []);
-
-  // 获取音频时长
-  const getAudioDuration = useCallback(async (file: File): Promise<number> => {
-    return new Promise((resolve, reject) => {
-      const audio = new Audio();
-      const url = URL.createObjectURL(file);
-      
-      audio.onloadedmetadata = () => {
-        URL.revokeObjectURL(url);
-        resolve(audio.duration);
-      };
-      
-      audio.onerror = () => {
-        URL.revokeObjectURL(url);
-        reject(new Error('读取音频文件失败'));
-      };
-      
-      audio.src = url;
-    });
-  }, []);
-
-  // 生成LRC格式歌词
-  const generateLrc = useCallback(async () => {
-    if (!uploadedFiles.audio || !uploadedFiles.lyrics) {
-      return;
-    }
-
-    setIsProcessing(true);
-    setProgress(0);
-
-    try {
-      setProgress(20);
-      const lyricsLines = await parseLyricsFile(uploadedFiles.lyrics.file);
-      
-      setProgress(40);
-      const audioDuration = await getAudioDuration(uploadedFiles.audio.file);
-      
-      setProgress(60);
-      const timePerLine = audioDuration / lyricsLines.length;
-      
-      setProgress(80);
-      const lrcContent: LyricLine[] = lyricsLines.map((line, index) => ({
-        time: index * timePerLine,
-        text: line
-      }));
-
-      const formatLrcTime = (seconds: number): string => {
-        const minutes = Math.floor(seconds / 60);
-        const secs = Math.floor(seconds % 60);
-        const centiseconds = Math.floor((seconds % 1) * 100);
-        return `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}.${centiseconds.toString().padStart(2, '0')}`;
-      };
-
-      const lrcString = [
-        '[ti:' + uploadedFiles.audio.file.name.replace(/\.[^/.]+$/, '') + ']',
-        '[ar:Unknown Artist]',
-        '[al:Unknown Album]',
-        '[by:LRC Generator]',
-        '',
-        ...lrcContent.map(line => `[${formatLrcTime(line.time)}]${line.text}`)
-      ].join('\n');
-
-      setLrcLines(lrcContent);
-      setGeneratedLrc(lrcString);
-      setEditableLrc(lrcString);
-      setProgress(100);
-      
-      setTimeout(() => {
-        setIsProcessing(false);
-        setProgress(0);
-      }, 500);
-
-    } catch (error) {
-      console.error('生成LRC失败:', error);
-      setIsProcessing(false);
-      setProgress(0);
-    }
-  }, [uploadedFiles, parseLyricsFile, getAudioDuration]);
-
-  // 保存编辑的LRC
-  const saveLrcEdit = useCallback(() => {
-    setGeneratedLrc(editableLrc);
-    setIsEditingLrc(false);
-    
-    // 重新解析LRC内容
-    const lines = editableLrc.split('\n');
-    const newLrcLines: LyricLine[] = [];
-    
-    lines.forEach(line => {
-      const match = line.match(/\[(\d{2}):(\d{2})\.(\d{2})\](.*)/);
-      if (match && match.length >= 5) {
-        const minutes = parseInt(match[1]!);
-        const seconds = parseInt(match[2]!);
-        const centiseconds = parseInt(match[3]!);
-        const text = match[4]!;
-        const time = minutes * 60 + seconds + centiseconds / 100;
-        newLrcLines.push({ time, text });
-      }
-    });
-    
-    setLrcLines(newLrcLines);
-  }, [editableLrc]);
-
-  // LRC测试播放器相关函数
-  const toggleTestPlayer = useCallback(() => {
-    setTestPlayerVisible(!testPlayerVisible);
-    if (!testPlayerVisible && testAudioRef.current && uploadedFiles.audio) {
-      testAudioRef.current.src = uploadedFiles.audio.url!;
-    }
-  }, [testPlayerVisible, uploadedFiles.audio]);
-
-  // 测试播放器控制函数
-  const toggleTestPlay = useCallback(() => {
-    if (!testAudioRef.current) return;
-    
-    if (testIsPlaying) {
-      testAudioRef.current.pause();
-    } else {
-      testAudioRef.current.play();
-    }
-    setTestIsPlaying(!testIsPlaying);
-  }, [testIsPlaying]);
-
-  const handleTestLoadedMetadata = useCallback(() => {
-    if (testAudioRef.current) {
-      setTestDuration(testAudioRef.current.duration);
-      testAudioRef.current.volume = testVolume;
-    }
-  }, [testVolume]);
-
-  const handleTestSeek = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const time = parseFloat(e.target.value);
-    if (testAudioRef.current) {
-      testAudioRef.current.currentTime = time;
-      setTestCurrentTime(time);
-    }
-  }, []);
-
-  const handleTestVolumeChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const vol = parseFloat(e.target.value);
-    setTestVolume(vol);
-    setTestIsMuted(vol === 0);
-    if (testAudioRef.current) {
-      testAudioRef.current.volume = vol;
-    }
-  }, []);
-
-  const toggleTestMute = useCallback(() => {
-    if (!testAudioRef.current) return;
-    
-    if (testIsMuted) {
-      testAudioRef.current.volume = testVolume;
-      setTestIsMuted(false);
-    } else {
-      testAudioRef.current.volume = 0;
-      setTestIsMuted(true);
-    }
-  }, [testIsMuted, testVolume]);
-
-  const skipTestTime = useCallback((seconds: number) => {
-    if (!testAudioRef.current) return;
-    
-    const newTime = Math.max(0, Math.min(testDuration, testCurrentTime + seconds));
-    testAudioRef.current.currentTime = newTime;
-    setTestCurrentTime(newTime);
-  }, [testCurrentTime, testDuration]);
-
-  // 歌词滚动到中心
-  const scrollToActiveLyric = useCallback(() => {
-    if (!lyricsContainerRef.current || currentLyricIndex === -1 || userScrolled) return;
-    
-    const container = lyricsContainerRef.current;
-    const lyricsWrapper = container.querySelector('.lyrics-wrapper') as HTMLElement;
-    if (!lyricsWrapper) return;
-    
-    const activeLyric = lyricsWrapper.children[currentLyricIndex] as HTMLElement;
-    
-    if (activeLyric) {
-      // 设置自动滚动标志和时间戳
-      const now = Date.now();
-      setIsAutoScrolling(true);
-      setLastAutoScrollTime(now);
-      
-      // 使用 scrollIntoView 方法实现精确居中
-      try {
-        activeLyric.scrollIntoView({
-          behavior: 'smooth',
-          block: 'center',
-          inline: 'nearest'
-        });
-      } catch (error) {
-        // 降级方案：手动计算滚动位置
-        const containerHeight = container.clientHeight;
-        const activeLyricTop = activeLyric.offsetTop;
-        const activeLyricHeight = activeLyric.clientHeight;
-        
-        // 计算歌词中心相对于 lyricsWrapper 的位置
-        const lyricCenter = activeLyricTop + (activeLyricHeight / 2);
-        
-        // 计算需要滚动的距离（考虑顶部填充）
-        const topPadding = 160; // h-40
-        const scrollTop = lyricCenter + topPadding - (containerHeight / 2);
-        
-        container.scrollTo({
-          top: Math.max(0, scrollTop),
-          behavior: 'smooth'
-        });
+  // 键盘快捷键
+  useEffect(() => {
+    const handleKeyPress = (e: KeyboardEvent) => {
+      // 如果焦点在输入框内，不处理快捷键
+      if (e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLInputElement) {
+        return;
       }
       
-      // 滚动完成后重置自动滚动标志
-      setTimeout(() => {
-        setIsAutoScrolling(false);
-      }, 1000); // 给滚动动画足够的时间完成
-    }
-  }, [currentLyricIndex, userScrolled]);
+      switch (e.code) {
+        case 'Space':
+          e.preventDefault();
+          if (audioFile) {
+            if (e.shiftKey) {
+              // Shift + Space: 播放/暂停
+              togglePlay();
+            } else {
+              // Space: 标记当前行
+              markCurrentLine();
+            }
+          }
+          break;
+        case 'ArrowLeft':
+          e.preventDefault();
+          if (e.shiftKey) {
+            skipTime(-1);
+          } else {
+            skipTime(-0.1);
+          }
+          break;
+        case 'ArrowRight':
+          e.preventDefault();
+          if (e.shiftKey) {
+            skipTime(1);
+          } else {
+            skipTime(0.1);
+          }
+          break;
+        case 'ArrowUp':
+          e.preventDefault();
+          setCurrentLineIndex(prev => Math.max(0, prev - 1));
+          break;
+        case 'ArrowDown':
+          e.preventDefault();
+          setCurrentLineIndex(prev => Math.min(lyrics.length - 1, prev + 1));
+          break;
+        case 'Enter':
+          e.preventDefault();
+          if (currentLineIndex < lyrics.length - 1) {
+            setCurrentLineIndex(prev => prev + 1);
+          }
+          break;
+      }
+    };
 
-  // 处理用户手动滚动
-  const handleLyricsScroll = useCallback(() => {
-    const now = Date.now();
-    
-    // 如果距离最后一次自动滚动时间小于1.5秒，认为是自动滚动触发的
-    if (now - lastAutoScrollTime < 1500) {
-      return;
-    }
-    
-    setUserScrolled(true);
-    
-    // 清除之前的定时器
-    if (scrollTimeout) {
-      clearTimeout(scrollTimeout);
-    }
-    
-    // 3秒后自动复位
-    const timeout = setTimeout(() => {
-      setUserScrolled(false);
-      // 立即触发滚动到当前活跃歌词
-      setTimeout(() => {
-        scrollToActiveLyric();
-      }, 100);
-    }, 3000);
-    
-    setScrollTimeout(timeout);
-  }, [scrollTimeout, scrollToActiveLyric, lastAutoScrollTime]);
+    document.addEventListener('keydown', handleKeyPress);
+    return () => document.removeEventListener('keydown', handleKeyPress);
+  }, [audioFile, togglePlay, markCurrentLine, skipTime, lyrics.length, currentLineIndex]);
 
-  // 监听测试播放器时间更新
-  const handleTestTimeUpdate = useCallback(() => {
-    if (!testAudioRef.current) return;
+  // 当前行变化时滚动到视野内
+  useEffect(() => {
+    if (currentLineRef.current) {
+      currentLineRef.current.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center'
+      });
+    }
+  }, [currentLineIndex]);
+
+  // 实时预览相关函数
+  const handlePreviewTimeUpdate = useCallback(() => {
+    if (!previewAudioRef.current) return;
     
-    const currentTime = testAudioRef.current.currentTime;
-    setTestCurrentTime(currentTime);
+    const currentTime = previewAudioRef.current.currentTime;
     
     // 找到当前应该高亮的歌词
+    const markedLyrics = lyrics.filter(line => line.isMarked && line.startTime !== null);
     let activeIndex = -1;
-    for (let i = 0; i < lrcLines.length; i++) {
-      const lyricLine = lrcLines[i];
-      if (lyricLine && currentTime >= lyricLine.time) {
+    
+    for (let i = 0; i < markedLyrics.length; i++) {
+      const lyric = markedLyrics[i];
+      if (lyric && lyric.startTime !== null && currentTime >= lyric.startTime) {
         activeIndex = i;
       } else {
         break;
       }
     }
     
-    if (activeIndex !== currentLyricIndex) {
-      setCurrentLyricIndex(activeIndex);
+    if (activeIndex !== previewCurrentLyricIndex) {
+      setPreviewCurrentLyricIndex(activeIndex);
     }
-  }, [lrcLines, currentLyricIndex]);
+  }, [lyrics, previewCurrentLyricIndex]);
 
-  // 当活跃歌词改变时滚动到中心
+  // 预览歌词滚动到中心
+  const scrollToActivePreviewLyric = useCallback(() => {
+    if (!previewLyricsRef.current || previewCurrentLyricIndex === -1 || userScrolledPreview) return;
+    
+    const container = previewLyricsRef.current;
+    const lyricsWrapper = container.querySelector('.preview-lyrics-wrapper') as HTMLElement;
+    if (!lyricsWrapper) return;
+    
+    const activeLyric = lyricsWrapper.children[previewCurrentLyricIndex] as HTMLElement;
+    
+    if (activeLyric) {
+      try {
+        setIsAutoScrolling(true);
+        activeLyric.scrollIntoView({
+          behavior: 'smooth',
+          block: 'center',
+          inline: 'nearest'
+        });
+        // 滚动完成后重置标志
+        setTimeout(() => {
+          setIsAutoScrolling(false);
+        }, 1000);
+      } catch (error) {
+        console.error('预览滚动失败:', error);
+        setIsAutoScrolling(false);
+      }
+    }
+  }, [previewCurrentLyricIndex, userScrolledPreview]);
+
+  // 处理预览用户手动滚动
+  const handlePreviewLyricsScroll = useCallback(() => {
+    // 如果是自动滚动，不标记为用户滚动
+    if (isAutoScrolling) {
+      return;
+    }
+    
+    setUserScrolledPreview(true);
+    
+    if (previewScrollTimeout) {
+      clearTimeout(previewScrollTimeout);
+    }
+    
+    const timeout = setTimeout(() => {
+      setUserScrolledPreview(false);
+    }, 3000);
+    
+    setPreviewScrollTimeout(timeout);
+  }, [previewScrollTimeout, isAutoScrolling]);
+
+  // 当预览活跃歌词改变时滚动到中心
   useEffect(() => {
-    if (currentLyricIndex !== -1) {
-      // 延迟一点时间确保DOM已更新
+    if (previewCurrentLyricIndex !== -1) {
       const timer = setTimeout(() => {
-        scrollToActiveLyric();
+        scrollToActivePreviewLyric();
       }, 50);
       
       return () => clearTimeout(timer);
     }
     return undefined;
-  }, [currentLyricIndex, scrollToActiveLyric]);
+  }, [previewCurrentLyricIndex, scrollToActivePreviewLyric]);
 
-  // 组件卸载时清理定时器
-  useEffect(() => {
-    return () => {
-      if (scrollTimeout) {
-        clearTimeout(scrollTimeout);
+  // 跳转到指定歌词时间
+  const jumpToLyricTime = useCallback((index: number) => {
+    const line = lyrics[index];
+    if (line && line.isMarked && line.startTime !== null) {
+      if (audioRef.current) {
+        audioRef.current.currentTime = line.startTime;
+        setCurrentTime(line.startTime);
       }
-    };
-  }, [scrollTimeout]);
+      setCurrentLineIndex(index);
+    }
+  }, [lyrics]);
 
-  // 下载LRC文件
-  const downloadLrc = useCallback(() => {
-    if (!generatedLrc) return;
-
-    const blob = new Blob([generatedLrc], { type: 'text/plain;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `${uploadedFiles.audio?.file.name.replace(/\.[^/.]+$/, '') || 'lyrics'}.lrc`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-  }, [generatedLrc, uploadedFiles.audio]);
-
-  // 重置所有状态
-  const resetAll = useCallback(() => {
-    Object.values(uploadedFiles).forEach(file => {
-      if (file?.url) {
-        URL.revokeObjectURL(file.url);
-      }
-    });
+  // 批量标记功能
+  const markMultipleLines = useCallback((startIndex: number, endIndex: number, startTime: number, duration: number) => {
+    const newLyrics = [...lyrics];
+    const lineCount = endIndex - startIndex + 1;
+    const timeInterval = duration / lineCount;
     
-    // 清理定时器
-    if (scrollTimeout) {
-      clearTimeout(scrollTimeout);
-      setScrollTimeout(null);
+    for (let i = startIndex; i <= endIndex; i++) {
+      const line = newLyrics[i];
+      if (line && !line.isMarked) {
+        line.startTime = startTime + (i - startIndex) * timeInterval;
+        line.isMarked = true;
+        newLyrics[i] = line;
+      }
     }
     
-    setUploadedFiles({});
-    setGeneratedLrc('');
-    setEditableLrc('');
-    setLrcLines([]);
-    setLyricsPreview('');
-    setShowLyricsPreview(false);
-    setIsProcessing(false);
-    setProgress(0);
-    setIsPlaying(false);
-    setCurrentTime(0);
-    setDuration(0);
-    setIsEditingLrc(false);
-    setTestPlayerVisible(false);
-    setCurrentLyricIndex(-1);
-    setTestIsPlaying(false);
-    setTestCurrentTime(0);
-    setTestDuration(0);
-    setUserScrolled(false);
-    setIsAutoScrolling(false);
-    setLastAutoScrollTime(0);
-    
-    if (audioInputRef.current) audioInputRef.current.value = '';
-    if (lyricsInputRef.current) lyricsInputRef.current.value = '';
-  }, [uploadedFiles, scrollTimeout]);
+    setLyrics(newLyrics);
+    setMarkedCount(prev => prev + (endIndex - startIndex + 1));
+  }, [lyrics]);
+
+  // 确认清除所有标记
+  const confirmClearAllMarks = useCallback(() => {
+    const newLyrics = lyrics.map(line => ({
+      ...line,
+      startTime: null,
+      isMarked: false
+    }));
+    setLyrics(newLyrics);
+    setMarkedCount(0);
+    setShowConfirmDialog(false);
+  }, [lyrics]);
 
   return (
     <div className="space-y-6">
-      {/* 简约标题区域 */}
-      <div className="text-center space-y-3">
+      {/* 标题区域 */}
+      {/* <div className="text-center space-y-3">
         <div className="flex items-center justify-center gap-3">
-          <div className="p-2 rounded-lg bg-slate-100 dark:bg-slate-800">
-            <Music className="h-6 w-6 text-slate-700 dark:text-slate-300" />
+          <div className="p-3 rounded-xl bg-gradient-to-br from-blue-100 to-purple-100 dark:from-blue-900/30 dark:to-purple-900/30">
+            <Music className="h-8 w-8 text-blue-600 dark:text-blue-400" />
           </div>
           <div>
-            <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-100">
-              LRC 歌词生成器
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+              专业 LRC 歌词制作工具
             </h1>
             <p className="text-sm text-slate-600 dark:text-slate-400">
-              上传音频和歌词文件，自动生成时间轴同步的 LRC 格式歌词
+              实时音频播放 • 手动精确标记 • 可视化编辑 • 专业制作
             </p>
           </div>
         </div>
-      </div>
+      </div> */}
 
-      {/* 文件上传区域 */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* 音频文件上传 */}
-        <div className="space-y-3">
-          <h3 className="text-base font-medium flex items-center gap-2 text-slate-800 dark:text-slate-200">
-            <FileAudio className="h-4 w-4" />
-            音频文件
-          </h3>
-          
-          <div
-            className={cn(
-              "relative border-2 border-dashed rounded-lg text-center transition-all duration-200 min-h-[160px] flex items-center justify-center",
-              dragOver === 'audio' 
-                ? "border-blue-400 bg-blue-50 dark:bg-blue-950/20" 
-                : "border-slate-300 dark:border-slate-600 hover:border-slate-400 dark:hover:border-slate-500",
-              uploadedFiles.audio && "border-green-400 bg-green-50 dark:bg-green-950/20"
-            )}
-            onDragOver={(e) => handleDragOver(e, 'audio')}
-            onDragLeave={handleDragLeave}
-            onDrop={(e) => handleDrop(e, 'audio')}
+      {/* 工具栏 */}
+      <div className="flex flex-wrap items-center justify-between gap-4 p-4 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setShowKeyboardGuide(!showKeyboardGuide)}
+            className="flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors text-sm"
           >
-            <input
-              ref={audioInputRef}
-              type="file"
-              accept="audio/mp3,audio/mpeg,audio/*"
-              onChange={(e) => handleFileSelect(e, 'audio')}
-              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-            />
-            
-            {uploadedFiles.audio ? (
-              <div className="space-y-2 p-4 w-full">
-                <div className="flex items-center justify-center gap-2">
-                  <FileAudio className="h-6 w-6 text-green-600" />
-                  <span className="font-medium text-green-700 dark:text-green-400 truncate max-w-[180px]">
-                    {uploadedFiles.audio.file.name}
-                  </span>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      removeFile('audio');
-                    }}
-                    className="p-1 rounded hover:bg-red-100 dark:hover:bg-red-900/20 text-red-500"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                </div>
-                <p className="text-xs text-slate-500">
-                  {(uploadedFiles.audio.file.size / 1024 / 1024).toFixed(2)} MB
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-2 p-6">
-                <Upload className="h-8 w-8 mx-auto text-slate-400" />
-                <div>
-                  <p className="font-medium text-slate-700 dark:text-slate-300">上传音频文件</p>
-                  <p className="text-xs text-slate-500">支持 MP3 等音频格式</p>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* 歌词文件上传 */}
-        <div className="space-y-3">
-          <h3 className="text-base font-medium flex items-center gap-2 text-slate-800 dark:text-slate-200">
-            <FileText className="h-4 w-4" />
-            歌词文件
-          </h3>
+            <Keyboard className="h-4 w-4" />
+            快捷键
+          </button>
           
-          <div
-            className={cn(
-              "relative border-2 border-dashed rounded-lg text-center transition-all duration-200 min-h-[160px] flex items-center justify-center",
-              dragOver === 'lyrics' 
-                ? "border-green-400 bg-green-50 dark:bg-green-950/20" 
-                : "border-slate-300 dark:border-slate-600 hover:border-slate-400 dark:hover:border-slate-500",
-              uploadedFiles.lyrics && "border-green-400 bg-green-50 dark:bg-green-950/20"
-            )}
-            onDragOver={(e) => handleDragOver(e, 'lyrics')}
-            onDragLeave={handleDragLeave}
-            onDrop={(e) => handleDrop(e, 'lyrics')}
-          >
+          <div className="flex items-center gap-2">
             <input
-              ref={lyricsInputRef}
-              type="file"
-              accept=".txt,text/plain,text/*"
-              onChange={(e) => handleFileSelect(e, 'lyrics')}
-              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+              type="checkbox"
+              id="autoAdvance"
+              checked={autoAdvance}
+              onChange={(e) => setAutoAdvance(e.target.checked)}
+              className="rounded"
             />
-            
-            {uploadedFiles.lyrics ? (
-              <div className="space-y-2 p-4 w-full">
-                <div className="flex items-center justify-center gap-2">
-                  <FileText className="h-6 w-6 text-green-600" />
-                  <span className="font-medium text-green-700 dark:text-green-400 truncate max-w-[180px]">
-                    {uploadedFiles.lyrics.file.name}
-                  </span>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setShowLyricsPreview(!showLyricsPreview);
-                    }}
-                    className="p-1 rounded hover:bg-blue-100 dark:hover:bg-blue-900/20 text-blue-500"
-                  >
-                    {showLyricsPreview ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      removeFile('lyrics');
-                    }}
-                    className="p-1 rounded hover:bg-red-100 dark:hover:bg-red-900/20 text-red-500"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                </div>
-                <p className="text-xs text-slate-500">
-                  {(uploadedFiles.lyrics.file.size / 1024).toFixed(2)} KB
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-2 p-6">
-                <Upload className="h-8 w-8 mx-auto text-slate-400" />
-                <div>
-                  <p className="font-medium text-slate-700 dark:text-slate-300">上传歌词文件</p>
-                  <p className="text-xs text-slate-500">每行一句歌词的 TXT 文件</p>
-                </div>
-              </div>
-            )}
+            <label htmlFor="autoAdvance" className="text-sm text-slate-700 dark:text-slate-300">
+              自动下一行
+            </label>
           </div>
-        </div>
-      </div>
-
-      {/* 歌词内容预览 */}
-      {showLyricsPreview && lyricsPreview && (
-        <div className="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-4 border border-slate-200 dark:border-slate-700">
-          <div className="flex items-center justify-between mb-3">
-            <h4 className="font-medium text-slate-800 dark:text-slate-200 flex items-center gap-2">
-              <List className="h-4 w-4" />
-              歌词内容预览
-            </h4>
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-slate-500">
-                共 {lyricsPreview.split('\n').filter(line => line.trim()).length} 行
-              </span>
+          
+          {/* 快捷操作 */}
+          {lyrics.length > 0 && (
+            <div className="flex items-center gap-2 pl-2 border-l border-slate-200 dark:border-slate-600">
               <button
-                onClick={() => setShowLyricsModal(true)}
-                className="p-1 rounded hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400"
-                title="放大查看"
+                onClick={() => setCurrentLineIndex(0)}
+                className="px-2 py-1 rounded text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors"
+                title="跳转到第一行"
               >
-                <Maximize2 className="h-4 w-4" />
+                首行
               </button>
-            </div>
-          </div>
-          <div className="bg-white dark:bg-slate-900 rounded border border-slate-200 dark:border-slate-600 p-3 max-h-32 overflow-y-auto">
-            <pre className="text-sm text-slate-700 dark:text-slate-300 whitespace-pre-wrap">
-              {lyricsPreview}
-            </pre>
-          </div>
-        </div>
-      )}
-
-      {/* 专业音频播放器 */}
-      {uploadedFiles.audio && (
-        <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
-          {/* 播放器头部 */}
-          <div className="px-4 py-3 bg-slate-50 dark:bg-slate-700/50 border-b border-slate-200 dark:border-slate-600">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/30">
-                  <Music className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                </div>
-                <div>
-                  <h3 className="font-medium text-slate-800 dark:text-slate-200 truncate max-w-[300px]">
-                    {uploadedFiles.audio.file.name}
-                  </h3>
-                  <p className="text-xs text-slate-500">
-                    {(uploadedFiles.audio.file.size / 1024 / 1024).toFixed(2)} MB • {formatTime(duration)}
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <span className="text-xs font-medium text-slate-600 dark:text-slate-400">倍速:</span>
-                <select
-                  value={playbackRate}
-                  onChange={(e) => changePlaybackRate(parseFloat(e.target.value))}
-                  className="text-xs font-medium bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg px-3 py-1.5 text-slate-700 dark:text-slate-300 hover:border-slate-400 dark:hover:border-slate-500 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 cursor-pointer"
-                >
-                  <option value={0.5} className="bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-300 py-2">0.5x</option>
-                  <option value={0.75} className="bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-300 py-2">0.75x</option>
-                  <option value={1} className="bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-300 py-2">1x</option>
-                  <option value={1.25} className="bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-300 py-2">1.25x</option>
-                  <option value={1.5} className="bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-300 py-2">1.5x</option>
-                  <option value={2} className="bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-300 py-2">2x</option>
-                </select>
-              </div>
-            </div>
-          </div>
-          
-          <audio
-            ref={audioRef}
-            src={uploadedFiles.audio.url}
-            onTimeUpdate={handleTimeUpdate}
-            onLoadedMetadata={handleLoadedMetadata}
-            onEnded={() => setIsPlaying(false)}
-            className="hidden"
-          />
-          
-          {/* 播放器主体 */}
-          <div className="p-4 space-y-4">
-            {/* 进度条 */}
-            <div className="space-y-2">
-              <input
-                type="range"
-                min="0"
-                max={duration || 0}
-                value={currentTime}
-                onChange={handleSeek}
-                className="w-full h-2 bg-slate-200 dark:bg-slate-600 rounded-lg appearance-none cursor-pointer"
-              />
-              <div className="flex justify-between text-xs text-slate-500">
-                <span>{formatTime(currentTime)}</span>
-                <span>{formatTime(duration)}</span>
-              </div>
-            </div>
-            
-            {/* 控制按钮 */}
-            <div className="flex items-center justify-center relative">
-              <div className="flex items-center gap-3">
-                {/* 快退 */}
-                <button
-                  onClick={() => skipTime(-10)}
-                  className="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 transition-all duration-200 shadow-sm hover:shadow-md border border-slate-200 dark:border-slate-600"
-                  title="快退10秒"
-                >
-                  <SkipBack className="h-4 w-4 text-slate-700 dark:text-slate-300" />
-                </button>
-                
-                {/* 播放/暂停 */}
-                <button
-                  onClick={togglePlay}
-                  className="p-3.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
-                >
-                  {isPlaying ? (
-                    <Pause className="h-5 w-5" />
-                  ) : (
-                    <Play className="h-5 w-5 ml-0.5" />
-                  )}
-                </button>
-                
-                {/* 快进 */}
-                <button
-                  onClick={() => skipTime(10)}
-                  className="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 transition-all duration-200 shadow-sm hover:shadow-md border border-slate-200 dark:border-slate-600"
-                  title="快进10秒"
-                >
-                  <SkipForward className="h-4 w-4 text-slate-700 dark:text-slate-300" />
-                </button>
-              </div>
               
-              {/* 音量控制 - 绝对定位到右侧 */}
-              <div className="absolute right-0 flex items-center gap-3">
-                <button
-                  onClick={toggleMute}
-                  className="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 transition-all duration-200 shadow-sm hover:shadow-md border border-slate-200 dark:border-slate-600"
-                >
-                  {isMuted || volume === 0 ? (
-                    <VolumeX className="h-4 w-4 text-slate-500" />
-                  ) : volume < 0.5 ? (
-                    <Volume1 className="h-4 w-4 text-slate-600 dark:text-slate-400" />
-                  ) : (
-                    <Volume2 className="h-4 w-4 text-slate-600 dark:text-slate-400" />
-                  )}
-                </button>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="range"
-                    min="0"
-                    max="1"
-                    step="0.05"
-                    value={isMuted ? 0 : volume}
-                    onChange={handleVolumeChange}
-                    className="w-20 h-1 bg-slate-200 dark:bg-slate-600 rounded-lg appearance-none cursor-pointer"
-                  />
-                  <span className="text-xs text-slate-500 min-w-[30px]">
-                    {Math.round((isMuted ? 0 : volume) * 100)}%
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* 操作按钮 */}
-      <div className="flex items-center justify-center gap-3">
-        <button
-          onClick={generateLrc}
-          disabled={!uploadedFiles.audio || !uploadedFiles.lyrics || isProcessing}
-          className={cn(
-            "flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all duration-200",
-            "bg-blue-600 text-white hover:bg-blue-700",
-            "disabled:opacity-50 disabled:cursor-not-allowed"
-          )}
-        >
-          {isProcessing ? (
-            <>
-              <Loader2 className="h-4 w-4 animate-spin" />
-              生成中...
-            </>
-          ) : (
-            <>
-              <Music className="h-4 w-4" />
-              生成 LRC 歌词
-            </>
-          )}
-        </button>
-
-        <button
-          onClick={resetAll}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all duration-200 border border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800"
-        >
-          <RefreshCw className="h-4 w-4" />
-          重置
-        </button>
-      </div>
-
-      {/* 进度条 */}
-      {isProcessing && (
-        <div className="space-y-2">
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-slate-600 dark:text-slate-400">处理进度</span>
-            <span className="font-medium">{progress}%</span>
-          </div>
-          <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2 overflow-hidden">
-            <div 
-              className="h-full bg-blue-600 transition-all duration-300 ease-out"
-              style={{ width: `${progress}%` }}
-            />
-          </div>
-        </div>
-      )}
-
-      {/* LRC结果展示和编辑 */}
-      {generatedLrc && (
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg font-medium text-slate-800 dark:text-slate-200">生成的 LRC 歌词</h3>
-            <div className="flex items-center gap-2">
-              {generatedLrc && (
-                <button
-                  onClick={toggleTestPlayer}
-                  className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-green-600 text-white hover:bg-green-700 transition-colors text-sm"
-                >
-                  <Settings className="h-4 w-4" />
-                  {testPlayerVisible ? '关闭测试' : '效果测试'}
-                </button>
-              )}
               <button
                 onClick={() => {
-                  setIsEditingLrc(!isEditingLrc);
-                  if (!isEditingLrc) {
-                    setEditableLrc(generatedLrc);
+                  const nextUnmarked = lyrics.findIndex((line, index) => index > currentLineIndex && !line.isMarked);
+                  if (nextUnmarked !== -1) {
+                    setCurrentLineIndex(nextUnmarked);
                   }
                 }}
-                className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-orange-600 text-white hover:bg-orange-700 transition-colors text-sm"
+                className="px-2 py-1 rounded text-xs bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 hover:bg-orange-200 dark:hover:bg-orange-900/50 transition-colors"
+                title="跳转到下一个未标记行"
               >
-                <Edit3 className="h-4 w-4" />
-                {isEditingLrc ? '取消编辑' : '编辑歌词'}
+                下个空行
               </button>
+              
+              {markedCount > 0 && (
+                <button
+                  onClick={() => {
+                    setShowConfirmDialog(true);
+                  }}
+                  className="px-2 py-1 rounded text-xs bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors"
+                  title="清除所有标记"
+                >
+                  清除全部
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+
+        <div className="flex items-center gap-3">
+          <div className="text-sm text-slate-600 dark:text-slate-400">
+            进度: {markedCount}/{lyrics.length}
+          </div>
+          
+          {markedCount > 0 && (
+            <>
               <button
-                onClick={() => setShowLrcModal(true)}
-                className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-purple-600 text-white hover:bg-purple-700 transition-colors text-sm"
-                title="放大查看"
+                onClick={() => setShowPreview(!showPreview)}
+                className="flex items-center gap-2 px-3 py-2 rounded-lg bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 hover:bg-green-200 dark:hover:bg-green-900/50 transition-colors text-sm"
               >
-                <Maximize2 className="h-4 w-4" />
-                放大查看
+                <Settings className="h-4 w-4" />
+                {showPreview ? '关闭预览' : '实时预览'}
               </button>
+              
               <button
                 onClick={downloadLrc}
-                className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors text-sm"
+                className="flex items-center gap-2 px-3 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors text-sm"
               >
                 <Download className="h-4 w-4" />
                 下载 LRC
               </button>
-            </div>
-          </div>
-
-          {isEditingLrc ? (
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <h4 className="font-medium text-slate-700 dark:text-slate-300">编辑 LRC 歌词</h4>
-                <button
-                  onClick={saveLrcEdit}
-                  className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-green-600 text-white hover:bg-green-700 transition-colors text-sm"
-                >
-                  <Save className="h-4 w-4" />
-                  保存修改
-                </button>
-              </div>
-              <textarea
-                value={editableLrc}
-                onChange={(e) => setEditableLrc(e.target.value)}
-                className="w-full h-64 p-3 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 font-mono text-sm resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="编辑 LRC 格式歌词..."
-              />
-            </div>
-          ) : (
-            <div className="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-4 border border-slate-200 dark:border-slate-700">
-              <pre className="text-sm font-mono text-slate-700 dark:text-slate-300 whitespace-pre-wrap break-words max-h-64 overflow-y-auto">
-                {generatedLrc}
-              </pre>
-            </div>
+            </>
           )}
+          
+          <button
+            onClick={resetAll}
+            className="flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-sm"
+          >
+            <RefreshCw className="h-4 w-4" />
+            重置
+          </button>
         </div>
-      )}
+      </div>
 
-      {/* LRC效果测试播放器 */}
-      {testPlayerVisible && generatedLrc && uploadedFiles.audio && (
-        <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-xl">
-          {/* 播放器头部 */}
-          <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-slate-800 dark:to-slate-700 px-6 py-4 border-b border-slate-200 dark:border-slate-600">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="p-2.5 rounded-xl bg-white dark:bg-slate-800 shadow-sm">
-                  <Music className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+      {/* 快捷键指南 */}
+      {showKeyboardGuide && (
+        <div className="p-6 bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 rounded-xl border border-blue-200/50 dark:border-blue-800/50">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-blue-900 dark:text-blue-100">键盘快捷键</h3>
+            <button
+              onClick={() => setShowKeyboardGuide(false)}
+              className="p-1 rounded hover:bg-blue-200/50 dark:hover:bg-blue-800/50"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+          
+          {/* 重要提示 */}
+          <div className="mb-6">
+            {/* <h4 className="font-semibold text-slate-800 dark:text-slate-200 mb-4 flex items-center gap-2">
+              <Target className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+              标记时机指导
+            </h4> */}
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* 正确做法 */}
+              <div className="relative bg-white dark:bg-slate-800 rounded-xl p-4 border border-green-200 dark:border-green-800">
+                <div className="absolute -top-3 -left-3 w-8 h-8 bg-green-500 rounded-full flex items-center justify-center text-white font-bold text-sm">
+                  ✓
                 </div>
-                <div>
-                  <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100">
-                    LRC 效果测试
-                  </h3>
-                  <p className="text-sm text-slate-600 dark:text-slate-400">
-                    {uploadedFiles.audio.file.name}
+                <div className="pt-2">
+                  <h5 className="font-semibold text-green-700 dark:text-green-300 mb-2">正确时机</h5>
+                  <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+                    在每句歌词<span className="px-2 py-1 mx-1 bg-green-100 dark:bg-green-900/30 rounded text-green-700 dark:text-green-300 font-mono text-xs">开始唱第一个字</span>的瞬间按下空格键
                   </p>
                 </div>
               </div>
-              <button
-                onClick={() => setTestPlayerVisible(false)}
-                className="p-2 rounded-lg hover:bg-white/50 dark:hover:bg-slate-700/50 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-all duration-200"
-              >
-                <X className="h-5 w-5" />
-              </button>
+              
+              {/* 错误做法 */}
+              <div className="relative bg-white dark:bg-slate-800 rounded-xl p-4 border border-red-200 dark:border-red-800">
+                <div className="absolute -top-3 -left-3 w-8 h-8 bg-red-500 rounded-full flex items-center justify-center text-white font-bold text-sm">
+                  ✗
+                </div>
+                <div className="pt-2">
+                  <h5 className="font-semibold text-red-700 dark:text-red-300 mb-2">错误时机</h5>
+                  <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+                    等到整句歌词唱完再标记，这会导致时间不准确，影响播放效果
+                  </p>
+                </div>
+              </div>
+              
+              {/* 制作技巧 */}
+              <div className="relative bg-white dark:bg-slate-800 rounded-xl p-4 border border-blue-200 dark:border-blue-800">
+                <div className="absolute -top-3 -left-3 w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold text-sm">
+                  💡
+                </div>
+                <div className="pt-2">
+                  <h5 className="font-semibold text-blue-700 dark:text-blue-300 mb-2">制作技巧</h5>
+                  <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+                    建议先完整听一遍歌曲，熟悉节奏和歌词后再开始精确制作
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
           
-          <audio
-            ref={testAudioRef}
-            src={uploadedFiles.audio.url}
-            onTimeUpdate={handleTestTimeUpdate}
-            onLoadedMetadata={handleTestLoadedMetadata}
-            onEnded={() => setTestIsPlaying(false)}
-            className="hidden"
-          />
-          
-          <div className="p-6 space-y-6">
-            {/* 歌词显示区域 */}
-            <div className="relative">
-              <div 
-                ref={lyricsContainerRef}
-                onScroll={handleLyricsScroll}
-                className="h-80 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-600 scrollbar-track-transparent"
-                style={{
-                  scrollbarWidth: 'thin',
-                  scrollbarColor: 'rgb(148 163 184) transparent'
-                }}
-              >
-                {/* 顶部和底部填充，确保第一行和最后一行可以居中 */}
-                <div className="h-40"></div>
-                
-                <div className="lyrics-wrapper space-y-3 px-4">
-                  {lrcLines.map((line, index) => (
-                    <div
-                      key={index}
-                      className={cn(
-                        "text-center py-3 px-4 rounded-lg transition-all duration-500 ease-out cursor-pointer",
-                        index === currentLyricIndex 
-                          ? "text-blue-600 dark:text-blue-400 font-semibold text-xl transform scale-105" 
-                          : index < currentLyricIndex 
-                            ? "text-slate-400 dark:text-slate-500 text-base" 
-                            : "text-slate-600 dark:text-slate-400 text-base hover:text-slate-800 dark:hover:text-slate-200"
-                      )}
-                      onClick={() => {
-                        if (testAudioRef.current && line.time) {
-                          testAudioRef.current.currentTime = line.time;
-                          setTestCurrentTime(line.time);
-                        }
-                      }}
-                    >
-                      {line.text}
-                    </div>
-                  ))}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {[
+              { key: 'Space', action: '标记当前行时间', desc: '在歌词开始唱时按下' },
+              { key: 'Shift + Space', action: '播放/暂停音频', desc: '控制音频播放状态' },
+              { key: '←/→', action: '快进/快退 0.1秒', desc: '精确调整播放位置' },
+              { key: 'Shift + ←/→', action: '快进/快退 1秒', desc: '快速调整播放位置' },
+              { key: '↑/↓', action: '上一行/下一行', desc: '切换当前编辑行' },
+              { key: 'Enter', action: '跳转下一行', desc: '快速移动到下一行' }
+            ].map(({ key, action, desc }) => (
+              <div key={key} className="flex flex-col gap-2 p-3 bg-white/60 dark:bg-slate-800/60 rounded-lg">
+                <div className="flex items-center gap-3">
+                  <kbd className="px-2 py-1 bg-slate-200 dark:bg-slate-700 rounded text-xs font-mono min-w-[60px] text-center">
+                    {key}
+                  </kbd>
+                  <span className="text-sm font-medium text-slate-800 dark:text-slate-200">{action}</span>
                 </div>
-                
-                <div className="h-40"></div>
+                <p className="text-xs text-slate-600 dark:text-slate-400 ml-1">{desc}</p>
               </div>
-              
-              {/* 中心指示线 */}
-              <div className="absolute left-0 right-0 top-1/2 transform -translate-y-1/2 pointer-events-none">
-                <div className="h-px bg-gradient-to-r from-transparent via-blue-300 dark:via-blue-600 to-transparent opacity-30"></div>
-              </div>
-            </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* 主要工作区域 */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* 左侧：音频上传和歌词输入 */}
+        <div className="lg:col-span-4 space-y-6">
+          {/* 音频文件上传 */}
+          <div className="space-y-3">
+            <h3 className="text-lg font-semibold flex items-center gap-2">
+              <FileAudio className="h-5 w-5" />
+              音频文件
+            </h3>
             
-            {/* 进度条 */}
-            <div className="space-y-3">
-              <div className="relative">
-                <input
-                  type="range"
-                  min="0"
-                  max={testDuration || 0}
-                  value={testCurrentTime}
-                  onChange={handleTestSeek}
-                  className="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-full appearance-none cursor-pointer slider"
-                  style={{
-                    background: `linear-gradient(to right, rgb(59 130 246) 0%, rgb(59 130 246) ${(testCurrentTime / (testDuration || 1)) * 100}%, rgb(226 232 240) ${(testCurrentTime / (testDuration || 1)) * 100}%, rgb(226 232 240) 100%)`
-                  }}
-                />
-              </div>
-              <div className="flex justify-between text-sm text-slate-500 dark:text-slate-400">
-                <span>{formatTime(testCurrentTime)}</span>
-                <span>{formatTime(testDuration)}</span>
-              </div>
-            </div>
-            
-            {/* 控制按钮区域 */}
-            <div className="flex items-center justify-center gap-6">
-              {/* 快退按钮 */}
-              <button
-                onClick={() => skipTestTime(-10)}
-                className="p-3 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105"
-                title="快退10秒"
-              >
-                <SkipBack className="h-5 w-5" />
-              </button>
+            <div
+              className={cn(
+                "relative border-2 border-dashed rounded-xl text-center transition-all duration-200 min-h-[120px] flex items-center justify-center",
+                dragOver 
+                  ? "border-blue-400 bg-blue-50 dark:bg-blue-950/20" 
+                  : "border-slate-300 dark:border-slate-600 hover:border-slate-400 dark:hover:border-slate-500",
+                audioFile && "border-green-400 bg-green-50 dark:bg-green-950/20"
+              )}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+            >
+              <input
+                type="file"
+                accept="audio/*"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) handleFileUpload(file);
+                }}
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+              />
               
-              {/* 播放/暂停按钮 */}
-              <button
-                onClick={toggleTestPlay}
-                className={cn(
-                  "p-4 rounded-full transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-110",
-                  testIsPlaying 
-                    ? "bg-orange-500 hover:bg-orange-600 text-white" 
-                    : "bg-blue-600 hover:bg-blue-700 text-white"
-                )}
-              >
-                {testIsPlaying ? (
-                  <Pause className="h-7 w-7" />
-                ) : (
-                  <Play className="h-7 w-7 ml-0.5" />
-                )}
-              </button>
-              
-              {/* 快进按钮 */}
-              <button
-                onClick={() => skipTestTime(10)}
-                className="p-3 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105"
-                title="快进10秒"
-              >
-                <SkipForward className="h-5 w-5" />
-              </button>
+              {audioFile ? (
+                <div className="space-y-2 p-4 w-full">
+                  <div className="flex items-center justify-center gap-2">
+                    <FileAudio className="h-6 w-6 text-green-600" />
+                    <span className="font-medium text-green-700 dark:text-green-400 truncate max-w-[200px]">
+                      {audioFile.file.name}
+                    </span>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        removeFile();
+                      }}
+                      className="p-1 rounded hover:bg-red-100 dark:hover:bg-red-900/20 text-red-500"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                  <p className="text-xs text-slate-500">
+                    {(audioFile.file.size / 1024 / 1024).toFixed(2)} MB
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-2 p-6">
+                  <Upload className="h-8 w-8 mx-auto text-slate-400" />
+                  <div>
+                    <p className="font-medium text-slate-700 dark:text-slate-300">上传音频文件</p>
+                    <p className="text-xs text-slate-500">支持 MP3、WAV 等音频格式</p>
+                  </div>
+                </div>
+              )}
             </div>
+          </div>
+
+          {/* 歌词输入 */}
+          <div className="space-y-3">
+            <h3 className="text-lg font-semibold flex items-center gap-2">
+              <FileText className="h-5 w-5" />
+              歌词文本
+            </h3>
             
-            {/* 音量控制 */}
-            <div className="flex items-center justify-center gap-4 pt-2">
-              <button
-                onClick={toggleTestMute}
-                className="p-2 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-all duration-200"
-              >
-                {testIsMuted || testVolume === 0 ? (
-                  <VolumeX className="h-4 w-4" />
-                ) : testVolume < 0.5 ? (
-                  <Volume1 className="h-4 w-4" />
-                ) : (
-                  <Volume2 className="h-4 w-4" />
-                )}
-              </button>
-              
-              <div className="flex items-center gap-3 flex-1 max-w-xs">
-                <input
-                  type="range"
-                  min="0"
-                  max="1"
-                  step="0.05"
-                  value={testIsMuted ? 0 : testVolume}
-                  onChange={handleTestVolumeChange}
-                  className="flex-1 h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full appearance-none cursor-pointer"
-                  style={{
-                    background: `linear-gradient(to right, rgb(59 130 246) 0%, rgb(59 130 246) ${(testIsMuted ? 0 : testVolume) * 100}%, rgb(226 232 240) ${(testIsMuted ? 0 : testVolume) * 100}%, rgb(226 232 240) 100%)`
-                  }}
-                />
-                <span className="text-sm text-slate-500 dark:text-slate-400 min-w-[35px] text-right">
-                  {Math.round((testIsMuted ? 0 : testVolume) * 100)}%
-                </span>
-              </div>
-            </div>
+            <textarea
+              ref={lyricsInputRef}
+              value={lyricsText}
+              onChange={(e) => handleLyricsChange(e.target.value)}
+              placeholder="在此输入歌词文本，每行一句歌词..."
+              className="w-full h-96 p-4 border border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent custom-scrollbar"
+            />
             
-            {/* 提示信息 */}
-            {userScrolled && (
-              <div className="text-center">
-                <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-sm">
-                  <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
-                  手动滚动中，3秒后自动复位
-                </span>
+            {lyrics.length > 0 && (
+              <div className="flex items-center justify-between text-sm text-slate-600 dark:text-slate-400">
+                <span>共 {lyrics.length} 行歌词</span>
+                <span>已标记 {markedCount} 行</span>
               </div>
             )}
           </div>
         </div>
-      )}
 
-      {/* 使用说明 */}
-      <div className="bg-blue-50 dark:bg-blue-950/20 rounded-lg p-4 border border-blue-200/20 dark:border-blue-800/20">
-        <h4 className="font-medium text-blue-900 dark:text-blue-100 mb-2">使用说明</h4>
-        <ul className="space-y-1 text-sm text-blue-800 dark:text-blue-200">
-          <li>• 上传 MP3 格式的音频文件和 TXT 格式的歌词文件</li>
-          <li>• 歌词文件应该是每行一句歌词的纯文本格式</li>
-          <li>• 上传后可预览歌词内容和音频播放</li>
-          <li>• 生成 LRC 后可编辑调整时间轴和歌词内容</li>
-          <li>• 使用效果测试功能查看歌词同步效果</li>
-        </ul>
-      </div>
-
-      {/* 歌词预览弹窗 */}
-      {showLyricsModal && (
-        <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-slate-800 rounded-lg max-w-4xl w-full max-h-[80vh] flex flex-col shadow-2xl border border-slate-200 dark:border-slate-700">
-            <div className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-600">
-              <h3 className="text-lg font-medium text-slate-800 dark:text-slate-200">
-                原始歌词内容
-              </h3>
-              <button
-                onClick={() => setShowLyricsModal(false)}
-                className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-500"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-            <div className="flex-1 p-4 overflow-y-auto">
-              <div className="rounded-lg p-4 border border-slate-200 dark:border-slate-600">
-                <pre className="text-sm text-slate-700 dark:text-slate-300 whitespace-pre-wrap leading-relaxed">
-                  {lyricsPreview}
-                </pre>
+        {/* 中间：音频播放器和歌词编辑 */}
+        <div className="lg:col-span-5 space-y-6">
+          {/* 音频播放器 */}
+          {audioFile && (
+            <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-lg">
+              <div className="p-4 bg-slate-50 dark:bg-slate-700/50 border-b border-slate-200 dark:border-slate-600">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/30">
+                      <Music className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                    </div>
+                    <div>
+                      <h4 className="font-medium text-slate-800 dark:text-slate-200 truncate max-w-[250px]">
+                        {audioFile.file.name}
+                      </h4>
+                      <p className="text-xs text-slate-500">
+                        {formatTime(duration)} • {playbackRate}x
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <select
+                    value={playbackRate}
+                    onChange={(e) => {
+                      const rate = parseFloat(e.target.value);
+                      setPlaybackRate(rate);
+                      if (audioRef.current) {
+                        audioRef.current.playbackRate = rate;
+                      }
+                    }}
+                    className="text-xs bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded px-2 py-1"
+                  >
+                    <option value={0.5}>0.5x</option>
+                    <option value={0.75}>0.75x</option>
+                    <option value={1}>1x</option>
+                    <option value={1.25}>1.25x</option>
+                    <option value={1.5}>1.5x</option>
+                  </select>
+                </div>
+              </div>
+              
+              <audio
+                ref={audioRef}
+                src={audioFile.url}
+                onTimeUpdate={handleTimeUpdate}
+                onLoadedMetadata={handleLoadedMetadata}
+                onEnded={() => setIsPlaying(false)}
+                className="hidden"
+              />
+              
+              <div className="p-4 space-y-4">
+                {/* 进度条 */}
+                <div className="space-y-2">
+                  <input
+                    type="range"
+                    min="0"
+                    max={duration || 0}
+                    value={currentTime}
+                    onChange={(e) => handleSeek(parseFloat(e.target.value))}
+                    className="w-full h-2 bg-slate-200 dark:bg-slate-600 rounded-lg appearance-none cursor-pointer"
+                  />
+                  <div className="flex justify-between text-xs text-slate-500">
+                    <span>{formatTime(currentTime)}</span>
+                    <span>{formatTime(duration)}</span>
+                  </div>
+                </div>
+                
+                {/* 控制按钮 */}
+                <div className="flex items-center justify-center gap-4">
+                  <button
+                    onClick={() => skipTime(-1)}
+                    className="p-2 rounded-lg bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 transition-all"
+                    title="快退1秒"
+                  >
+                    <SkipBack className="h-4 w-4" />
+                  </button>
+                  
+                  <button
+                    onClick={togglePlay}
+                    className="p-3 rounded-lg bg-blue-600 hover:bg-blue-700 text-white transition-all shadow-lg hover:shadow-xl"
+                  >
+                    {isPlaying ? (
+                      <Pause className="h-5 w-5" />
+                    ) : (
+                      <Play className="h-5 w-5 ml-0.5" />
+                    )}
+                  </button>
+                  
+                  <button
+                    onClick={() => skipTime(1)}
+                    className="p-2 rounded-lg bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 transition-all"
+                    title="快进1秒"
+                  >
+                    <SkipForward className="h-4 w-4" />
+                  </button>
+                  
+                  <button
+                    onClick={toggleMute}
+                    className="p-2 rounded-lg bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 transition-all"
+                  >
+                    {isMuted ? (
+                      <VolumeX className="h-4 w-4" />
+                    ) : (
+                      <Volume2 className="h-4 w-4" />
+                    )}
+                  </button>
+                </div>
+                
+                {/* 标记按钮 */}
+                {lyrics.length > 0 && currentLineIndex < lyrics.length && (
+                  <div className="pt-2 border-t border-slate-200 dark:border-slate-600">
+                    <button
+                      onClick={markCurrentLine}
+                      disabled={lyrics[currentLineIndex]?.isMarked}
+                      className={cn(
+                        "w-full flex items-center justify-center gap-2 py-3 rounded-lg font-medium transition-all",
+                        lyrics[currentLineIndex]?.isMarked
+                          ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 cursor-not-allowed"
+                          : "bg-red-600 text-white shadow-lg transform"
+                      )}
+                    >
+                      {lyrics[currentLineIndex]?.isMarked ? (
+                        <>
+                          <CheckCircle2 className="h-5 w-5" />
+                          已标记时间点
+                        </>
+                      ) : (
+                        <>
+                          <Target className="h-5 w-5" />
+                          在歌词开始唱时标记 ({formatTime(currentTime)})
+                        </>
+                      )}
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
-            <div className="p-4 border-t border-slate-200 dark:border-slate-600 text-center">
-              <span className="text-sm text-slate-500">
-                共 {lyricsPreview.split('\n').filter(line => line.trim()).length} 行歌词
-              </span>
-            </div>
-          </div>
-        </div>
-      )}
+          )}
 
-      {/* LRC预览弹窗 */}
-      {showLrcModal && generatedLrc && (
-        <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-slate-800 rounded-lg max-w-4xl w-full max-h-[80vh] flex flex-col shadow-2xl border border-slate-200 dark:border-slate-700">
-            <div className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-600">
-              <h3 className="text-lg font-medium text-slate-800 dark:text-slate-200">
-                LRC 歌词内容
+          {/* 歌词列表和编辑 */}
+          {lyrics.length > 0 && (
+            <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-lg">
+              <div className="p-4 bg-slate-50 dark:bg-slate-700/50 border-b border-slate-200 dark:border-slate-600">
+                <h3 className="font-medium text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                  <Edit3 className="h-4 w-4" />
+                  歌词编辑 ({currentLineIndex + 1}/{lyrics.length})
+                </h3>
+              </div>
+              
+              <div className="max-h-[500px] overflow-y-auto custom-scrollbar">
+                {lyrics.map((line, index) => (
+                  <div
+                    key={line.id}
+                    ref={index === currentLineIndex ? currentLineRef : null}
+                    className={cn(
+                      "p-4 border-b border-slate-100 dark:border-slate-700 transition-all cursor-pointer",
+                      index === currentLineIndex && "bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800",
+                      line.isMarked && "bg-green-50/50 dark:bg-green-950/20"
+                    )}
+                    onClick={() => {
+                      setCurrentLineIndex(index);
+                      // 如果行已标记，跳转到对应时间
+                      if (line.isMarked && line.startTime !== null) {
+                        jumpToLyricTime(index);
+                      }
+                    }}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className={cn(
+                            "text-xs px-2 py-1 rounded",
+                            index === currentLineIndex 
+                              ? "bg-blue-200 dark:bg-blue-800 text-blue-800 dark:text-blue-200"
+                              : "bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400"
+                          )}>
+                            #{index + 1}
+                          </span>
+                          
+                          {line.isMarked && (
+                            <span className="text-xs px-2 py-1 rounded bg-green-200 dark:bg-green-800 text-green-800 dark:text-green-200 flex items-center gap-1">
+                              <Clock className="h-3 w-3" />
+                              {formatTime(line.startTime || 0)}
+                            </span>
+                          )}
+                        </div>
+                        
+                        <p className={cn(
+                          "text-sm truncate",
+                          index === currentLineIndex 
+                            ? "text-blue-900 dark:text-blue-100 font-medium"
+                            : "text-slate-700 dark:text-slate-300"
+                        )}>
+                          {line.text}
+                        </p>
+                      </div>
+                      
+                      {line.isMarked && (
+                        <div className="flex items-center gap-1 ml-2">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              adjustTime(index, -0.1);
+                            }}
+                            className="p-1 rounded hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-500"
+                            title="减少0.1秒"
+                          >
+                            -
+                          </button>
+                          
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              adjustTime(index, 0.1);
+                            }}
+                            className="p-1 rounded hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-500"
+                            title="增加0.1秒"
+                          >
+                            +
+                          </button>
+                          
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              clearMark(index);
+                            }}
+                            className="p-1 rounded hover:bg-red-200 dark:hover:bg-red-900/30 text-red-500"
+                            title="清除标记"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* 右侧：LRC预览和导出 */}
+        <div className="lg:col-span-3 space-y-6">
+          {/* 制作进度 */}
+          {lyrics.length > 0 && (
+            <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-4 shadow-lg">
+              <h3 className="font-medium text-slate-800 dark:text-slate-200 mb-3 flex items-center gap-2">
+                <Timer className="h-4 w-4" />
+                制作进度
               </h3>
-              <div className="flex items-center gap-2">
+              
+              <div className="space-y-3">
+                <div className="flex justify-between text-sm">
+                  <span className="text-slate-600 dark:text-slate-400">已标记</span>
+                  <span className="font-medium">{markedCount}/{lyrics.length}</span>
+                </div>
+                
+                <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2">
+                  <div 
+                    className="h-full bg-gradient-to-r from-blue-500 to-green-500 rounded-full transition-all duration-300"
+                    style={{ width: `${lyrics.length ? (markedCount / lyrics.length) * 100 : 0}%` }}
+                  />
+                </div>
+                
+                <div className="text-center">
+                  {markedCount === lyrics.length && markedCount > 0 ? (
+                    <span className="text-sm text-green-600 dark:text-green-400 flex items-center justify-center gap-1">
+                      <CheckCircle2 className="h-4 w-4" />
+                      制作完成！
+                    </span>
+                  ) : (
+                    <span className="text-xs text-slate-500">
+                      还需标记 {lyrics.length - markedCount} 行
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* LRC预览 */}
+          {markedCount > 0 && (
+            <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-lg">
+              <div className="p-4 bg-slate-50 dark:bg-slate-700/50 border-b border-slate-200 dark:border-slate-600">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-medium text-slate-800 dark:text-slate-200">LRC 预览</h3>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => {
+                        if (isEditingLrc) {
+                          // 保存编辑内容
+                          const content = editableLrcContent || generateLrcContent();
+                          setEditableLrcContent(content);
+                          setIsEditingLrc(false);
+                        } else {
+                          // 开始编辑
+                          setEditableLrcContent(generateLrcContent());
+                          setIsEditingLrc(true);
+                        }
+                      }}
+                      className={cn(
+                        "px-2 py-1 rounded text-xs transition-colors",
+                        isEditingLrc 
+                          ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 hover:bg-green-200 dark:hover:bg-green-900/50"
+                          : "bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 hover:bg-orange-200 dark:hover:bg-orange-900/50"
+                      )}
+                      title={isEditingLrc ? "保存编辑" : "编辑LRC"}
+                    >
+                      {isEditingLrc ? '保存' : '编辑'}
+                    </button>
+                    
+                    <button
+                      onClick={() => {
+                        const content = isEditingLrc ? editableLrcContent : generateLrcContent();
+                        navigator.clipboard.writeText(content).then(() => {
+                          const button = document.activeElement as HTMLButtonElement;
+                          const originalText = button.textContent;
+                          button.textContent = '已复制!';
+                          setTimeout(() => {
+                            button.textContent = originalText;
+                          }, 1000);
+                        }).catch(() => {
+                          alert('复制失败，请手动复制');
+                        });
+                      }}
+                      className="px-2 py-1 rounded text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors"
+                      title="复制LRC内容"
+                    >
+                      复制
+                    </button>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="max-h-80 p-4">
+                {isEditingLrc ? (
+                  <textarea
+                    value={editableLrcContent}
+                    onChange={(e) => setEditableLrcContent(e.target.value)}
+                    className="w-full h-72 p-3 text-xs font-mono text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-600 rounded-lg resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent custom-scrollbar"
+                    placeholder="编辑 LRC 格式歌词..."
+                  />
+                ) : (
+                  <div className="h-72 overflow-y-auto custom-scrollbar">
+                    <pre className="text-xs font-mono text-slate-600 dark:text-slate-400 whitespace-pre-wrap leading-relaxed p-3">
+                      {editableLrcContent || generateLrcContent()}
+                    </pre>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* 实时预览播放器 - 跨越整个宽度 */}
+      {showPreview && markedCount > 0 && audioFile && (
+        <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-xl">
+          {/* 预览播放器头部 */}
+          <div className="bg-gradient-to-r from-green-50 via-blue-50 to-purple-50 dark:from-green-950/30 dark:via-blue-950/30 dark:to-purple-950/30 px-6 py-4 border-b border-slate-200 dark:border-slate-600">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="p-3 rounded-xl bg-white dark:bg-slate-800 shadow-lg">
+                  <Music className="h-6 w-6 text-green-600 dark:text-green-400" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100">
+                    实时预览播放器
+                  </h3>
+                  <p className="text-sm text-slate-600 dark:text-slate-400">
+                    {audioFile.file.name} • 已标记 {markedCount} 行歌词
+                  </p>
+                </div>
+              </div>
+              
+              {/* 预览播放器控制按钮组 */}
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 bg-white dark:bg-slate-800 rounded-lg px-3 py-2 shadow-sm">
+                  <span className="text-xs text-slate-600 dark:text-slate-400">播放速度:</span>
+                  <select
+                    value={playbackRate}
+                    onChange={(e) => {
+                      const rate = parseFloat(e.target.value);
+                      setPlaybackRate(rate);
+                      if (previewAudioRef.current) {
+                        previewAudioRef.current.playbackRate = rate;
+                      }
+                    }}
+                    className="text-xs bg-transparent border-none outline-none cursor-pointer"
+                  >
+                    <option value={0.5}>0.5x</option>
+                    <option value={0.75}>0.75x</option>
+                    <option value={1}>1x</option>
+                    <option value={1.25}>1.25x</option>
+                    <option value={1.5}>1.5x</option>
+                  </select>
+                </div>
+                
                 <button
-                  onClick={downloadLrc}
-                  className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors text-sm"
-                >
-                  <Download className="h-4 w-4" />
-                  下载
-                </button>
-                <button
-                  onClick={() => setShowLrcModal(false)}
-                  className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-500"
+                  onClick={() => {
+                    setShowPreview(false);
+                    setPreviewCurrentLyricIndex(-1);
+                    if (previewAudioRef.current) {
+                      previewAudioRef.current.pause();
+                    }
+                  }}
+                  className="p-2 rounded-lg hover:bg-white/70 dark:hover:bg-slate-700/70 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-all duration-200"
                 >
                   <X className="h-5 w-5" />
                 </button>
               </div>
             </div>
-            <div className="flex-1 p-4 overflow-y-auto">
-              <div className="rounded-lg p-4 border border-slate-200 dark:border-slate-600">
-                <pre className="text-sm font-mono text-slate-700 dark:text-slate-300 whitespace-pre-wrap leading-relaxed">
-                  {generatedLrc}
-                </pre>
+          </div>
+          
+          <audio
+            ref={previewAudioRef}
+            src={audioFile.url}
+            onTimeUpdate={handlePreviewTimeUpdate}
+            onLoadedMetadata={() => {
+              if (previewAudioRef.current) {
+                previewAudioRef.current.volume = volume;
+                previewAudioRef.current.playbackRate = playbackRate;
+              }
+            }}
+            onEnded={() => {
+              setPreviewCurrentLyricIndex(-1);
+              setIsPreviewPlaying(false);
+            }}
+            onPlay={() => setIsPreviewPlaying(true)}
+            onPause={() => setIsPreviewPlaying(false)}
+            className="hidden"
+          />
+          
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 p-6">
+            {/* 左侧：播放控制区 */}
+            <div className="space-y-4">
+              <h4 className="font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                <Settings className="h-4 w-4" />
+                播放控制
+              </h4>
+              
+              {/* 播放按钮组 */}
+              <div className="flex items-center justify-center gap-3">
+                <button
+                  onClick={() => {
+                    if (previewAudioRef.current) {
+                      previewAudioRef.current.currentTime = Math.max(0, previewAudioRef.current.currentTime - 10);
+                    }
+                  }}
+                  className="p-3 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-all shadow-md hover:shadow-lg"
+                  title="快退10秒"
+                >
+                  <SkipBack className="h-5 w-5" />
+                </button>
+                
+                <button
+                  onClick={() => {
+                    if (previewAudioRef.current) {
+                      if (previewAudioRef.current.paused) {
+                        previewAudioRef.current.play();
+                        setIsPreviewPlaying(true);
+                      } else {
+                        previewAudioRef.current.pause();
+                        setIsPreviewPlaying(false);
+                      }
+                    }
+                  }}
+                  className="p-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white transition-all shadow-lg hover:shadow-xl"
+                >
+                  {isPreviewPlaying ? (
+                    <Pause className="h-6 w-6" />
+                  ) : (
+                    <Play className="h-6 w-6 ml-0.5" />
+                  )}
+                </button>
+                
+                <button
+                  onClick={() => {
+                    if (previewAudioRef.current) {
+                      previewAudioRef.current.currentTime = Math.min(previewAudioRef.current.duration, previewAudioRef.current.currentTime + 10);
+                    }
+                  }}
+                  className="p-3 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-all shadow-md hover:shadow-lg"
+                  title="快进10秒"
+                >
+                  <SkipForward className="h-5 w-5" />
+                </button>
+              </div>
+              
+              {/* 音量控制 */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-slate-600 dark:text-slate-400">音量</span>
+                  <span className="text-xs text-slate-500">{Math.round(volume * 100)}%</span>
+                </div>
+                <input
+                  type="range"
+                  min="0"
+                  max="1"
+                  step="0.05"
+                  value={volume}
+                  onChange={(e) => {
+                    const vol = parseFloat(e.target.value);
+                    setVolume(vol);
+                    if (previewAudioRef.current) {
+                      previewAudioRef.current.volume = vol;
+                    }
+                  }}
+                  className="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer"
+                />
+              </div>
+              
+              {/* 进度信息 */}
+              <div className="space-y-2">
+                <div className="flex justify-between text-xs text-slate-500">
+                  <span>当前歌词: {previewCurrentLyricIndex + 1}/{lyrics.filter(l => l.isMarked).length}</span>
+                  <span>总时长: {formatTime(duration)}</span>
+                </div>
               </div>
             </div>
-            <div className="p-4 border-t border-slate-200 dark:border-slate-600 text-center">
-              <span className="text-sm text-slate-500">
-                LRC 格式歌词文件
-              </span>
+            
+            {/* 中间：歌词显示区域 */}
+            <div className="lg:col-span-2">
+              <h4 className="font-semibold text-slate-800 dark:text-slate-200 mb-4 flex items-center gap-2">
+                <Music className="h-4 w-4" />
+                同步歌词
+              </h4>
+              
+              <div className="relative">
+                <div 
+                  ref={previewLyricsRef}
+                  onScroll={handlePreviewLyricsScroll}
+                  className="h-80 overflow-y-auto overflow-x-hidden custom-scrollbar bg-gradient-to-b from-slate-50 to-white dark:from-slate-800 dark:to-slate-900 rounded-xl border border-slate-200 dark:border-slate-700"
+                  style={{
+                    scrollbarWidth: 'thin',
+                    scrollbarColor: 'rgb(148 163 184) transparent'
+                  }}
+                >
+                  {/* 顶部和底部填充 */}
+                  <div className="h-40"></div>
+                  
+                  <div className="preview-lyrics-wrapper space-y-1 px-6">
+                    {lyrics
+                      .filter(line => line.isMarked && line.startTime !== null)
+                      .sort((a, b) => (a.startTime || 0) - (b.startTime || 0))
+                      .map((line, index) => (
+                        <div
+                          key={line.id}
+                          className={cn(
+                            "text-center py-2 px-4 transition-all duration-500 ease-out cursor-pointer relative",
+                            index === previewCurrentLyricIndex 
+                              ? "text-green-600 dark:text-green-400 font-semibold text-lg transform scale-105" 
+                              : index < previewCurrentLyricIndex 
+                                ? "text-slate-400 dark:text-slate-500 text-sm" 
+                                : "text-slate-600 dark:text-slate-400 text-base hover:text-slate-800 dark:hover:text-slate-200"
+                          )}
+                          onClick={() => {
+                            if (previewAudioRef.current && line.startTime !== null) {
+                              previewAudioRef.current.currentTime = line.startTime;
+                            }
+                          }}
+                        >
+                          {/* 活跃指示器 - 放在左侧 */}
+                          {index === previewCurrentLyricIndex && (
+                            <div className="absolute left-1 top-1/2 transform -translate-y-1/2 w-1 h-6 bg-green-500 rounded-full shadow-sm"></div>
+                          )}
+                          
+                          {/* 时间标记 - 放在右上角 */}
+                          <div className="absolute top-0.5 right-2">
+                            <span className={cn(
+                              "text-xs px-1.5 py-0.5 rounded font-medium",
+                              index === previewCurrentLyricIndex
+                                ? "bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300"
+                                : "bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400"
+                            )}>
+                              {formatTime(line.startTime || 0)}
+                            </span>
+                          </div>
+                          
+                          {/* 歌词文本 */}
+                          <div className="leading-relaxed">
+                            {line.text}
+                          </div>
+                        </div>
+                      ))}
+                  </div>
+                  
+                  <div className="h-40"></div>
+                </div>
+                
+                {/* 中心指示线 */}
+                <div className="absolute left-4 right-4 top-1/2 transform -translate-y-1/2 pointer-events-none z-10">
+                  <div className="h-0.5 bg-gradient-to-r from-transparent via-green-400 dark:via-green-500 to-transparent opacity-70 shadow-sm"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          {/* 底部状态栏 */}
+          <div className="bg-slate-50 dark:bg-slate-800 px-6 py-3 border-t border-slate-200 dark:border-slate-600">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4 text-sm text-slate-600 dark:text-slate-400">
+                <span>🎯 点击歌词行可跳转到对应时间</span>
+                <span>🎨 当前播放模式：实时同步</span>
+              </div>
+              
+              {userScrolledPreview && (
+                <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 text-sm">
+                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                  手动滚动中，3秒后自动复位
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 使用提示 */}
+      <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 rounded-xl p-6 border border-blue-200/50 dark:border-blue-800/50">
+        <h4 className="font-medium text-blue-900 dark:text-blue-100 mb-3 flex items-center gap-2">
+          <Zap className="h-4 w-4" />
+          制作指南
+        </h4>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
+          <div className="flex items-start gap-2">
+            <div className="w-6 h-6 rounded-full bg-blue-200 dark:bg-blue-800 flex items-center justify-center text-xs font-bold text-blue-800 dark:text-blue-200 mt-0.5">1</div>
+            <div>
+              <p className="font-medium text-blue-800 dark:text-blue-200">上传音频</p>
+              <p className="text-blue-600 dark:text-blue-300">选择要制作歌词的音频文件</p>
+            </div>
+          </div>
+          
+          <div className="flex items-start gap-2">
+            <div className="w-6 h-6 rounded-full bg-blue-200 dark:bg-blue-800 flex items-center justify-center text-xs font-bold text-blue-800 dark:text-blue-200 mt-0.5">2</div>
+            <div>
+              <p className="font-medium text-blue-800 dark:text-blue-200">输入歌词</p>
+              <p className="text-blue-600 dark:text-blue-300">在左侧输入框中输入歌词文本</p>
+            </div>
+          </div>
+          
+          <div className="flex items-start gap-2">
+            <div className="w-6 h-6 rounded-full bg-blue-200 dark:bg-blue-800 flex items-center justify-center text-xs font-bold text-blue-800 dark:text-blue-200 mt-0.5">3</div>
+            <div>
+              <p className="font-medium text-blue-800 dark:text-blue-200">精确标记</p>
+              <p className="text-blue-600 dark:text-blue-300">在每句歌词开始唱时按空格键标记</p>
+            </div>
+          </div>
+          
+          <div className="flex items-start gap-2">
+            <div className="w-6 h-6 rounded-full bg-blue-200 dark:bg-blue-800 flex items-center justify-center text-xs font-bold text-blue-800 dark:text-blue-200 mt-0.5">4</div>
+            <div>
+              <p className="font-medium text-blue-800 dark:text-blue-200">导出文件</p>
+              <p className="text-blue-600 dark:text-blue-300">完成后下载标准 LRC 格式文件</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 确认对话框 */}
+      {showConfirmDialog && (
+        <div 
+          className="fixed z-50"
+          style={{
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            zIndex: 9999
+          }}
+        >
+          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 p-6 w-96 max-w-[90vw]">
+            <div className="flex items-center gap-4 mb-4">
+              <div className="w-12 h-12 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center">
+                <X className="h-6 w-6 text-red-600 dark:text-red-400" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+                  清除所有标记
+                </h3>
+                <p className="text-sm text-slate-600 dark:text-slate-400">
+                  此操作无法撤销
+                </p>
+              </div>
+            </div>
+            
+            <p className="text-slate-700 dark:text-slate-300 mb-6 leading-relaxed">
+              确定要清除所有 <span className="font-semibold text-red-600 dark:text-red-400">{markedCount}</span> 个时间标记吗？
+               这将删除您已经制作的所有歌词时间点，需要重新标记。
+            </p>
+            
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setShowConfirmDialog(false)}
+                className="px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+              >
+                取消
+              </button>
+              <button
+                onClick={confirmClearAllMarks}
+                className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white transition-colors shadow-lg hover:shadow-xl"
+              >
+                确定清除
+              </button>
             </div>
           </div>
         </div>

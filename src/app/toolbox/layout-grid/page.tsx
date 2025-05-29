@@ -44,7 +44,7 @@ export default async function LayoutGridPage() {
       {/* 右侧主内容区 */}
       <main className="min-h-screen lg:ml-80 transition-all duration-300" id="docs-main-content">
         <div className="p-4 lg:p-6">
-          <div className="mx-auto transition-all duration-300 max-w-7xl" id="docs-container">
+          <div className="mx-auto transition-all duration-300" id="docs-container">
             <div className="flex-1 min-w-0 transition-all duration-300 max-w-none" id="docs-content">
               <div className="bg-background/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-border/50 overflow-hidden">
                 <div className="px-8 py-8 lg:px-12 lg:py-10">

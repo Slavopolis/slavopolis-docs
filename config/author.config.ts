@@ -23,7 +23,7 @@ export const authorConfig: Author = {
   location: "中国 · 上海",
   website: "/",
   social: {
-      github: "https://github.com/Slavopolis/Slavopolis-Docs",
+      github: "https://github.com/slavopolis/slavopolis-docs",
     twitter: "https://twitter.com/slavopolis",
     email: "slavopolis@gmail.com",
     zhihu: "https://zhihu.com/people/slavopolis",

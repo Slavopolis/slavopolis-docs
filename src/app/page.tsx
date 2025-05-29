@@ -25,7 +25,7 @@ export default async function DocsPage() {
             {/* 右侧主内容区 - 上浮卡片效果 */}
             <main className="min-h-screen lg:ml-80 transition-all duration-300" id="docs-main-content">
                 <div className="p-6 lg:p-8">
-                    <div className="max-w-8xl mx-auto" id="docs-container">
+                    <div className="mx-auto" id="docs-container">
                         {/* 主要内容卡片 */}
                         <div className="bg-background/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-border/50 overflow-hidden" id="docs-content">
                             <div className="px-6 py-8 lg:px-10 lg:py-12">
@@ -196,7 +196,7 @@ export default async function DocsPage() {
                                         如果您在使用过程中遇到问题，或需要更多帮助和建议，请联系我们的支持团队。我们随时为您提供帮助！
                                     </p>
                                     <div className="flex flex-wrap items-center gap-4 text-sm">
-                                        <a className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium" href="/help">
+                                        <a className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors font-medium" href="/help">
                                             获取帮助
                                         </a>
                                         <a className="inline-flex items-center gap-2 px-4 py-2 border border-border/60 text-muted-foreground hover:text-foreground hover:border-border rounded-lg transition-colors" href="https://github.com/slavopolis/slavopolis-docs" target="_blank">

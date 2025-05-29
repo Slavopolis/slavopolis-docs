@@ -62,13 +62,12 @@ async function parseDirectory(dirPath: string, baseHref: string): Promise<DocIte
       const categoryPath = path.join(dirPath, entry.name);
       const categoryConfig = getCategoryConfig(categoryPath);
       
-      // 使用原始目录名作为URL路径部分，避免转换
-      const safeUrlPath = encodeURIComponent(entry.name);
-      const children = await parseDirectory(categoryPath, `${baseHref}${baseHref ? '/' : ''}${safeUrlPath}`);
+      // 使用原始目录名作为URL路径部分，不进行URL编码
+      const children = await parseDirectory(categoryPath, `${baseHref}${baseHref ? '/' : ''}${entry.name}`);
       
       const item: DocItem = {
         title: categoryConfig?.label || formatDirName(entry.name),
-        href: `${baseHref}${baseHref ? '/' : ''}${safeUrlPath}`,
+        href: `${baseHref}${baseHref ? '/' : ''}${entry.name}`,
       };
       
       if (categoryConfig?.link?.description) {
@@ -92,12 +91,11 @@ async function parseDirectory(dirPath: string, baseHref: string): Promise<DocIte
       const filePath = path.join(dirPath, entry.name);
       const fileName = entry.name.replace(/\.(md|mdx)$/, '');
       
-      // 编码文件名以安全处理中文等特殊字符
-      const safeFileName = encodeURIComponent(fileName);
+      // 保留原始文件名，不进行URL编码
       
       // 如果是 index 文件，使用父目录名称
       const isIndex = fileName === 'index';
-      const href = isIndex ? baseHref : `${baseHref}${baseHref ? '/' : ''}${safeFileName}`;
+      const href = isIndex ? baseHref : `${baseHref}${baseHref ? '/' : ''}${fileName}`;
       
       try {
         const fileContent = fs.readFileSync(filePath, 'utf-8');

@@ -2,7 +2,7 @@ export const siteConfig = {
   name: "Slavopolis Docs",
   title: "Slavopolis - 现代化技术文档与博客系统",
   description: "基于 React、Next.js、TailwindCSS 构建的现代化静态博客系统，提供优雅的技术文档和博客展示平台",
-  url: "https://slavopolis-docs.vercel.app",
+    url: "https://github.com/slavopolis/slavopolis-docs",
   logo: "/logo.png",
   favicon: "/favicon.png",
   language: "zh-CN",
@@ -174,9 +174,9 @@ export const siteConfig = {
 
   // 社交媒体链接
   social: {
-    github: "https://github.com/slavopolis",
+      github: "https://github.com/slavopolis/slavopolis-docs",
     twitter: "https://twitter.com/slavopolis",
-    email: "contact@slavopolis.com",
+    email: "slavopolis@gmail.com",
     rss: "/feed.xml",
   },
 

@@ -1,6 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // 合并所有 experimental 配置
   experimental: {
+    serverComponentsExternalPackages: [],
     mdxRs: true,
   },
   pageExtensions: ['js', 'jsx', 'ts', 'tsx', 'md', 'mdx'],
@@ -16,6 +18,11 @@ const nextConfig = {
   // 根据部署环境调整路径配置
   assetPrefix: process.env.NODE_ENV === 'production' ? (process.env.DEPLOY_PATH || '') : '',
   basePath: process.env.NODE_ENV === 'production' ? (process.env.DEPLOY_PATH || '') : '',
+  
+  // 禁用自动URL编码
+  compress: true,
+  poweredByHeader: false,
+  
   env: {
     CUSTOM_KEY: 'slavopolis-docs',
   },
@@ -41,27 +48,7 @@ const nextConfig = {
 
     return config;
   },
-  async headers() {
-    return [
-      {
-        source: '/(.*)',
-        headers: [
-          {
-            key: 'X-Content-Type-Options',
-            value: 'nosniff',
-          },
-          {
-            key: 'X-Frame-Options',
-            value: 'DENY',
-          },
-          {
-            key: 'X-XSS-Protection',
-            value: '1; mode=block',
-          },
-        ],
-      },
-    ];
-  },
+  // 注意：在静态导出模式下 headers 配置不会生效
 };
 
 module.exports = nextConfig; 

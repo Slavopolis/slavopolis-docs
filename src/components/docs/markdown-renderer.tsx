@@ -5,7 +5,7 @@ import { Check, Copy, ExternalLink } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneDark, oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism';
@@ -18,6 +18,9 @@ import remarkToc from 'remark-toc';
 
 // KaTeX CSS (需要在全局样式中引入)
 import 'katex/dist/katex.min.css';
+
+// 创建列表上下文
+const ListContext = createContext<'ul' | 'ol' | null>(null);
 
 interface MarkdownRendererProps {
     content: string;
@@ -333,31 +336,28 @@ function CodeBlock({ children, className, inline, ...props }: CodeBlockProps) {
     };
 
         return (
-        <div className="relative group rounded-xl overflow-hidden border border-gray-200/60 dark:border-gray-700/60 shadow-md hover:shadow-lg transition-all duration-300 max-w-full bg-white dark:bg-gray-900/95 backdrop-blur-sm">
+            <div className="relative group my-2 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 transition-shadow duration-200 max-w-full bg-white dark:bg-gray-900">
             {/* 代码块头部 */}
-            <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-gray-50/80 to-gray-100/50 dark:from-gray-800/80 dark:to-gray-700/50 border-b border-gray-200/50 dark:border-gray-700/50 backdrop-blur-sm">
+            <div className="relative flex items-center justify-between px-4 py-2 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-750 border-b border-gray-200 dark:border-gray-700">
+                {/* 左侧装饰圆点和语言标签 */}
                 <div className="flex items-center gap-3">
                     <div className="flex gap-1.5">
-                        <div className="w-3 h-3 rounded-full bg-gradient-to-br from-red-400 to-red-500 shadow-inner relative">
-                            <div className="absolute inset-0.5 rounded-full bg-gradient-to-tl from-red-300/50 to-transparent"></div>
-                        </div>
-                        <div className="w-3 h-3 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-500 shadow-inner relative">
-                            <div className="absolute inset-0.5 rounded-full bg-gradient-to-tl from-yellow-300/50 to-transparent"></div>
-                        </div>
-                        <div className="w-3 h-3 rounded-full bg-gradient-to-br from-green-400 to-green-500 shadow-inner relative">
-                            <div className="absolute inset-0.5 rounded-full bg-gradient-to-tl from-green-300/50 to-transparent"></div>
-                        </div>
+                        <div className="w-3 h-3 rounded-full bg-red-500 shadow-sm"></div>
+                        <div className="w-3 h-3 rounded-full bg-yellow-500 shadow-sm"></div>
+                        <div className="w-3 h-3 rounded-full bg-green-500 shadow-sm"></div>
                     </div>
+                    {/* 语言标签靠左显示 */}
                     {language && (
-                        <span className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide bg-gray-200/50 dark:bg-gray-700/50 px-2 py-1 rounded-md">
+                        <span className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide px-2 py-1 rounded-md">
                             {language}
                         </span>
                     )}
                 </div>
 
+                {/* 右侧复制按钮 */}
                 <button
                     onClick={copyToClipboard}
-                    className="opacity-70 hover:opacity-100 transition-all duration-200 p-1.5 rounded-md hover:bg-gray-200/50 dark:hover:bg-gray-700/50 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:scale-105"
+                    className="opacity-70 hover:opacity-100 transition-opacity duration-200 p-1.5 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
                     title="复制代码"
                 >
                     {copied ? (
@@ -368,8 +368,8 @@ function CodeBlock({ children, className, inline, ...props }: CodeBlockProps) {
                 </button>
             </div>
 
-            {/* 代码内容 - 移除背景色并优化显示 */}
-            <div className="overflow-x-auto">
+            {/* 代码内容 */}
+            <div className="overflow-x-auto bg-gray-50/30 dark:bg-gray-900/50">
                 <SyntaxHighlighter
                     style={theme === 'dark' ? oneDark : oneLight}
                     language={language}
@@ -424,54 +424,13 @@ interface CustomImageProps {
 }
 
 function CustomImage({ src, alt, title, ...props }: CustomImageProps) {
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [imageLoading, setImageLoading] = useState(true);
-    
     if (!src) return null;
 
     const isExternal = src.startsWith('http');
 
-    const openModal = () => {
-        console.log('Opening modal for image:', src);
-        setIsModalOpen(true);
-        setImageLoading(true);
-    };
-    const closeModal = () => {
-        console.log('Closing modal');
-        setIsModalOpen(false);
-        setImageLoading(true);
-    };
-    
-    // 键盘支持
-    useEffect(() => {
-        const handleKeyDown = (event: KeyboardEvent) => {
-            if (event.key === 'Escape' && isModalOpen) {
-                closeModal();
-            }
-        };
-
-        if (isModalOpen) {
-            document.addEventListener('keydown', handleKeyDown);
-            document.body.style.overflow = 'hidden'; // 防止背景滚动
-        }
-
-        return () => {
-            document.removeEventListener('keydown', handleKeyDown);
-            document.body.style.overflow = 'unset';
-        };
-    }, [isModalOpen]);
-
     return (
-        <>
-            <span className="my-6 block">
-                <span 
-                    className="relative overflow-hidden rounded-lg border-2 border-gray-200 dark:border-gray-700 hover:border-blue-500 dark:hover:border-blue-400 transition-all duration-300 cursor-pointer inline-block max-w-full"
-                    onClick={openModal}
-                    role="button"
-                    tabIndex={0}
-                    onKeyDown={(e) => e.key === 'Enter' && openModal()}
-                    aria-label={`查看图片: ${alt || '图片'}`}
-                >
+        <span className="my-6 block">
+            <span className="relative overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700 inline-block max-w-full">
                 {isExternal ? (
                     <img
                         src={src}
@@ -493,85 +452,13 @@ function CustomImage({ src, alt, title, ...props }: CustomImageProps) {
                         style={{ background: 'transparent' }}
                     />
                 )}
-                    
-                    {/* 右上角固定放大图标 */}
-                    <span 
-                        className="absolute top-2 right-2 bg-white/90 dark:bg-gray-900/90 p-1.5 rounded-full shadow-md hover:bg-white dark:hover:bg-gray-800 transition-colors duration-200 pointer-events-none"
-                        title="点击查看大图"
-                    >
-                        <svg className="w-4 h-4 text-gray-700 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
-                        </svg>
-                    </span>
-                </span>
-                {alt && (
-                    <span className="mt-2 text-center text-sm text-gray-600 dark:text-gray-400 italic block">
-                        {alt}
-                    </span>
-                )}
             </span>
-
-            {/* 图片放大模态框 */}
-            {isModalOpen && (
-                <div 
-                    className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm"
-                    onClick={closeModal}
-                    style={{ zIndex: 9999 }}
-                >
-                    <div 
-                        className="relative flex flex-col items-center justify-center"
-                        onClick={(e) => e.stopPropagation()}
-                        style={{ maxWidth: '90vw', maxHeight: '90vh' }}
-                    >
-                        <button
-                            onClick={closeModal}
-                            className="absolute -top-12 right-0 text-white hover:text-gray-300 transition-colors p-2 rounded-full hover:bg-white/10"
-                            aria-label="关闭图片查看器"
-                        >
-                            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                        </button>
-                        
-                        <img
-                            src={src}
-                            alt={alt || ''}
-                            title={title}
-                            className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
-                            style={{ 
-                                background: 'transparent',
-                                maxWidth: '90vw',
-                                maxHeight: '90vh',
-                                display: imageLoading ? 'none' : 'block'
-                            }}
-                            onError={(e) => {
-                                console.error('Failed to load image:', src);
-                                setImageLoading(false);
-                                e.currentTarget.style.display = 'block';
-                                e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjNmNGY2Ii8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzk5OWE5YiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPuWbvueJh+WKoOi9veWksei0pTwvdGV4dD48L3N2Zz4=';
-                            }}
-                            onLoad={() => {
-                                console.log('Image loaded successfully:', src);
-                                setImageLoading(false);
-                            }}
-                        />
-                        
-                        {/* 加载指示器 */}
-                        {imageLoading && (
-                            <div className="flex items-center justify-center min-h-[200px] min-w-[200px]">
-                                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white"></div>
-            </div>
-                        )}
-                        
             {alt && (
-                            <div className="mt-4 text-center text-white text-sm bg-black/50 rounded px-3 py-1 max-w-full">
+                <span className="mt-2 text-center text-sm text-gray-600 dark:text-gray-400 italic block">
                     {alt}
-                            </div>
+                </span>
             )}
-                    </div>
-                </div>
-            )}
-        </>
+        </span>
     );
 }
 
@@ -634,9 +521,9 @@ interface CustomTableProps {
 
 function CustomTable({ children }: CustomTableProps) {
     return (
-        <div className="my-8 overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm">
+        <div className="my-8 overflow-hidden rounded-lg">
             <div className="overflow-x-auto max-w-full">
-                <table className="w-full border-collapse bg-white dark:bg-gray-900 min-w-full table-auto">
+                <table className="w-full border-collapse bg-white dark:bg-gray-900 min-w-full table-auto rounded-lg overflow-hidden">
                     {children}
                 </table>
             </div>
@@ -819,17 +706,16 @@ export function MarkdownRenderer({ content, className }: MarkdownRendererProps) 
         
         /* 代码块优化样式 */
         .markdown-content .group {
-          box-shadow: 
-            0 2px 4px -1px rgba(0, 0, 0, 0.06), 
-            0 1px 3px -1px rgba(0, 0, 0, 0.1),
-            0 0 0 1px rgba(0, 0, 0, 0.05) !important;
+          /* 让 Tailwind 的 shadow-md 生效，不强制覆盖 */
         }
         
         .dark .markdown-content .group {
-          box-shadow: 
-            0 2px 4px -1px rgba(0, 0, 0, 0.2), 
-            0 1px 3px -1px rgba(0, 0, 0, 0.15),
-            0 0 0 1px rgba(255, 255, 255, 0.1) !important;
+          /* 暗色模式下仍使用 Tailwind 的阴影 */
+        }
+        
+        /* 代码块悬停效果 */
+        .markdown-content .group:hover {
+          /* 让 Tailwind 的 hover:shadow-lg 生效 */
         }
         
         /* 确保标题不受代码块样式影响 - 加强样式清除 */
@@ -1011,6 +897,22 @@ export function MarkdownRenderer({ content, className }: MarkdownRendererProps) 
           padding: 0.75rem !important;
           vertical-align: top !important;
           hyphens: auto !important;
+          border-left: none !important;
+          border-right: none !important;
+        }
+        
+        /* 表头样式 - 只保留底部边框 */
+        .markdown-content th {
+          border-bottom: 1px solid rgb(229, 231, 235) !important;
+        }
+        
+        .dark .markdown-content th {
+          border-bottom: 1px solid rgb(55, 65, 81) !important;
+        }
+        
+        /* 表格单元格 - 无边框 */
+        .markdown-content td {
+          border: none !important;
         }
         
         /* 表格容器强制宽度控制 */
@@ -1042,84 +944,66 @@ export function MarkdownRenderer({ content, className }: MarkdownRendererProps) 
           margin-bottom: 0 !important;
         }
         
-        /* 列表优化 - 彻底移除缩进并确保任务列表无圆点 */
+        /* 列表优化 - 简化样式，确保有序列表正确显示 */
         .markdown-content ul,
         .markdown-content ol {
-          padding-left: 0 !important;
-          margin-left: 0 !important;
           max-width: 100% !important;
           overflow-wrap: break-word !important;
         }
         
-        .markdown-content li {
+        /* 无序列表 - 移除默认样式 */
+        .markdown-content ul {
+          list-style: none !important;
+          list-style-type: none !important;
+          padding-left: 0 !important;
+          margin-left: 0 !important;
+        }
+        
+        .markdown-content ul li {
+          list-style: none !important;
+          list-style-type: none !important;
+          padding-left: 0 !important;
+          margin-left: 0 !important;
+          margin: 0.25rem 0 !important;
+        }
+        
+        /* 有序列表 - 确保数字显示 */
+        .markdown-content ol {
+          list-style: decimal !important;
+          list-style-type: decimal !important;
+          padding-left: 1.5rem !important;
+          margin-left: 0 !important;
+        }
+        
+        .markdown-content ol li {
+          list-style: decimal !important;
+          list-style-type: decimal !important;
+          list-style-position: outside !important;
           margin: 0.25rem 0 !important;
           padding-left: 0 !important;
           margin-left: 0 !important;
-          word-wrap: break-word !important;
-          overflow-wrap: break-word !important;
-          max-width: 100% !important;
-          list-style: none !important;
-          list-style-type: none !important;
         }
         
-        /* 强制移除所有列表样式，包括任务列表 */
-        .markdown-content ul li,
-        .markdown-content ol li {
-          list-style: none !important;
-          list-style-type: none !important;
-          padding-left: 0 !important;
-          margin-left: 0 !important;
-        }
-        
-        /* 特别针对任务列表的强制样式移除 */
-        .markdown-content ul li input[type="checkbox"],
-        .markdown-content li:has(input[type="checkbox"]),
-        .markdown-content ul:has(li input[type="checkbox"]) li {
-          list-style: none !important;
-          list-style-type: none !important;
-          padding-left: 0 !important;
-          margin-left: 0 !important;
-        }
-        
-        /* 确保有序列表数字仍然显示但不缩进 */
-        .markdown-content ol li {
-          list-style: decimal !important;
-          list-style-position: inside !important;
-          padding-left: 0 !important;
-          margin-left: 0 !important;
-        }
-        
-        /* 但如果有序列表包含任务列表，则移除数字 */
-        .markdown-content ol li:has(input[type="checkbox"]) {
-          list-style: none !important;
-          list-style-type: none !important;
-        }
-        
-        /* 针对ReactMarkdown和remark-gfm生成的任务列表进行额外处理 */
+        /* 任务列表特殊处理 */
+        .markdown-content ul li:has(input[type="checkbox"]),
+        .markdown-content ol li:has(input[type="checkbox"]),
         .markdown-content li[data-task-list-item],
         .markdown-content li[data-task-list-item="true"],
-        .markdown-content .task-list-item,
-        .markdown-content ul.contains-task-list li,
-        .markdown-content ul[class*="task"] li {
+        .markdown-content .task-list-item {
           list-style: none !important;
           list-style-type: none !important;
           padding-left: 0 !important;
           margin-left: 0 !important;
         }
         
-        /* 确保任务列表父容器也没有缩进 */
-        .markdown-content ul.contains-task-list,
-        .markdown-content ul[class*="task"] {
-          padding-left: 0 !important;
-          margin-left: 0 !important;
-          list-style: none !important;
+        /* 覆盖可能的伪元素样式，但不影响有序列表的数字 */
+        .markdown-content ul li::before,
+        .markdown-content ul li::after {
+          content: none !important;
+          display: none !important;
         }
         
-        /* 覆盖可能的伪元素或::before/::after样式 */
-        .markdown-content li::before,
-        .markdown-content li::after,
-        .markdown-content ul li::before,
-        .markdown-content ul li::after,
+        /* 任务列表项的特殊处理 */
         .markdown-content li[data-task-list-item]::before,
         .markdown-content li[data-task-list-item]::after {
           content: none !important;
@@ -1435,16 +1319,22 @@ export function MarkdownRenderer({ content, className }: MarkdownRendererProps) 
 
                     // 列表
                     ul: ({ children }) => (
-                        <ul className="my-5 space-y-1.5 list-none" style={{ paddingLeft: 0, marginLeft: 0 }}>
-                            {children}
-                        </ul>
+                        <ListContext.Provider value="ul">
+                            <ul className="my-3 space-y-1.5 list-none" style={{ paddingLeft: 0, marginLeft: 0 }}>
+                                {children}
+                            </ul>
+                        </ListContext.Provider>
                     ),
                     ol: ({ children }) => (
-                        <ol className="my-5 space-y-1.5 list-decimal text-gray-700 dark:text-gray-300" style={{ paddingLeft: 0, marginLeft: 0 }}>
-                            {children}
-                        </ol>
+                        <ListContext.Provider value="ol">
+                            <ol className="my-5 space-y-1.5 list-decimal text-gray-700 dark:text-gray-300" style={{ paddingLeft: '1.5rem' }}>
+                                {children}
+                            </ol>
+                        </ListContext.Provider>
                     ),
-                    li: ({ children, ordered, checked, ...props }: any) => {
+                    li: ({ children, checked, ...props }: any) => {
+                        const listType = useContext(ListContext);
+                        
                         // 检查是否是任务列表项 (有 checked 属性)
                         if (checked !== undefined) {
                             return (
@@ -1464,30 +1354,27 @@ export function MarkdownRenderer({ content, className }: MarkdownRendererProps) 
                                         className="mt-1.5 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                                     />
                                     <span>{children}</span>
-                        </li>
+                                </li>
                             );
                         }
                         
-                        // 普通列表项
-                        if (!ordered) {
-                            // 无序列表项
+                        // 使用上下文来判断列表类型
+                        if (listType === 'ol') {
+                            // 有序列表项 - 保持简单，让浏览器处理数字
+                            return (
+                                <li className="text-gray-700 dark:text-gray-300 leading-relaxed">
+                                    {children}
+                                </li>
+                            );
+                        } else {
+                            // 无序列表项 - 简单的圆点设计
                             return (
                                 <li 
                                     className="text-gray-700 dark:text-gray-300 leading-relaxed flex items-start" 
                                     style={{ paddingLeft: 0, marginLeft: 0 }}
                                 >
-                                    <span className="inline-block w-2 h-2 bg-blue-500 dark:bg-blue-400 rounded-full mr-2 mt-2 flex-shrink-0"></span>
+                                    <span className="inline-block w-1.5 h-1.5 bg-gray-400 dark:bg-gray-500 rounded-full mr-3 mt-2.5 flex-shrink-0"></span>
                                     <span className="flex-1">{children}</span>
-                                </li>
-                            );
-                        } else {
-                            // 有序列表项
-                            return (
-                                <li 
-                                    className="text-gray-700 dark:text-gray-300 leading-relaxed" 
-                                    style={{ paddingLeft: 0, marginLeft: 0 }}
-                                >
-                                    {children}
                                 </li>
                             );
                         }
@@ -1495,7 +1382,7 @@ export function MarkdownRenderer({ content, className }: MarkdownRendererProps) 
 
                     // 段落
                     p: ({ children }) => (
-                        <p className="my-5 leading-relaxed text-gray-700 dark:text-gray-300 text-base">
+                        <p className="my-1 leading-relaxed text-gray-700 dark:text-gray-300 text-base">
                             {children}
                         </p>
                     ),

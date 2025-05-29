@@ -5,29 +5,29 @@ import { parseDocsStructure } from '@/lib/docs';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'LRC歌词生成器 - ' + siteConfig.name,
-  description: '上传音频和歌词文件，自动生成时间轴同步的LRC格式歌词文件，支持拖拽上传和一键下载',
+  title: 'LRC歌词制作工具 - ' + siteConfig.name,
+  description: '专业的LRC歌词制作工具，支持实时音频播放，手动精确标记歌词时间轴，提供可视化编辑和实时预览功能',
   keywords: [
-    'LRC歌词生成器',
-    '歌词文件',
-    'LRC格式',
-    '音频处理',
-    '歌词同步',
-    '时间轴',
-    'MP3',
-    '歌词制作',
-    '音乐工具'
+    'LRC歌词制作',
+    '歌词时间轴',
+    '手动制作歌词',
+    '音频同步',
+    '歌词编辑器',
+    '实时预览',
+    '精确标记',
+    '可视化编辑',
+    '专业工具'
   ],
   openGraph: {
-    title: 'LRC歌词生成器 - ' + siteConfig.name,
-    description: '上传音频和歌词文件，自动生成时间轴同步的LRC格式歌词文件',
+    title: 'LRC歌词制作工具 - ' + siteConfig.name,
+    description: '专业的LRC歌词制作工具，支持实时音频播放，手动精确标记歌词时间轴',
     type: 'website',
     url: `${siteConfig.url}/toolbox/lrc-generator`,
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'LRC歌词生成器 - ' + siteConfig.name,
-    description: '上传音频和歌词文件，自动生成时间轴同步的LRC格式歌词文件',
+    title: 'LRC歌词制作工具 - ' + siteConfig.name,
+    description: '专业的LRC歌词制作工具，支持实时音频播放，手动精确标记歌词时间轴',
   },
 };
 
@@ -43,7 +43,7 @@ export default async function LrcGeneratorPage() {
       {/* 右侧主内容区 */}
       <main className="min-h-screen lg:ml-80 transition-all duration-300" id="docs-main-content">
         <div className="p-4 lg:p-6">
-          <div className="mx-auto transition-all duration-300 max-w-7xl" id="docs-container">
+          <div className="mx-auto transition-all duration-300" id="docs-container">
             <div className="flex-1 min-w-0 transition-all duration-300 max-w-none" id="docs-content">
               <div className="bg-background/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-border/50 overflow-hidden">
                 <div className="px-8 py-8 lg:px-12 lg:py-10">

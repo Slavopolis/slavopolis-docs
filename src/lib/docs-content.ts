@@ -47,15 +47,34 @@ function calculateReadingTime(content: string): number {
 export async function getDocBySlug(slug: string): Promise<DocContent> {
   const docsDirectory = path.join(process.cwd(), 'content/docs');
   
-  // 确保slug没有被编码
-  const decodedSlug = decodeURIComponent(slug);
+  // 确保slug没有被编码，进行多重解码尝试
+  let decodedSlug = slug;
+  try {
+    // 尝试解码，如果是编码的路径则解码，否则保持原样
+    const decoded = decodeURIComponent(slug);
+    // 检查解码是否有效（包含非ASCII字符或者解码后与原始不同）
+    if (decoded !== slug || /[^\x00-\x7F]/.test(decoded)) {
+      decodedSlug = decoded;
+    }
+  } catch (error) {
+    // 如果解码失败，保持原始路径
+    console.warn(`无法解码路径: ${slug}`, error);
+  }
   
-  // 尝试不同的文件路径
+  // 尝试不同的文件路径，同时考虑编码和未编码的情况
   const possiblePaths = [
+    // 使用解码后的路径
     path.join(docsDirectory, `${decodedSlug}.md`),
     path.join(docsDirectory, `${decodedSlug}.mdx`),
     path.join(docsDirectory, decodedSlug, 'index.md'),
     path.join(docsDirectory, decodedSlug, 'index.mdx'),
+    // 如果解码后的路径与原始路径不同，也尝试原始路径
+    ...(decodedSlug !== slug ? [
+      path.join(docsDirectory, `${slug}.md`),
+      path.join(docsDirectory, `${slug}.mdx`),
+      path.join(docsDirectory, slug, 'index.md'),
+      path.join(docsDirectory, slug, 'index.mdx'),
+    ] : [])
   ];
 
   let filePath: string | null = null;

@@ -31,7 +31,6 @@ import {
     Settings,
     Shield,
     Sparkles,
-    Star,
     User,
     X,
     Zap
@@ -113,9 +112,9 @@ function ToolboxApp({ app, isCollapsed, onClick }: ToolboxAppProps) {
         )}
       </div>
 
-      {app.featured && (
+      {/* {app.featured && (
         <div className="absolute -top-1 -right-1 w-3 h-3 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full animate-pulse" />
-      )}
+      )} */}
       
       {app.protected && isCollapsed && (
         <div className="absolute bottom-2 right-2">
@@ -173,45 +172,6 @@ export function DocsSidebar({ items, className }: DocsSidebarProps) {
       } else {
         mainContent.classList.remove('lg:ml-16');
         mainContent.classList.add('lg:ml-80');
-      }
-    });
-    
-    const containers = document.querySelectorAll('#docs-container, [data-docs-container]');
-    containers.forEach((container) => {
-      if (newCollapsed) {
-        if (container.classList.contains('max-w-8xl')) {
-          container.classList.remove('max-w-8xl');
-          container.classList.add('max-w-none');
-        } else if (container.classList.contains('max-w-7xl')) {
-          container.classList.remove('max-w-7xl');
-          container.classList.add('max-w-none');
-        }
-      } else {
-        if (container.hasAttribute('data-original-width')) {
-          const originalWidth = container.getAttribute('data-original-width');
-          if (originalWidth) {
-            container.classList.remove('max-w-none');
-            container.classList.add(originalWidth);
-          }
-        } else {
-          container.classList.remove('max-w-none');
-          if (container.classList.contains('max-w-8xl') || container.querySelector('.max-w-8xl')) {
-            container.classList.add('max-w-8xl');
-          } else {
-            container.classList.add('max-w-7xl');
-          }
-        }
-      }
-    });
-    
-    const contents = document.querySelectorAll('#docs-content, [data-docs-content]');
-    contents.forEach((content) => {
-      if (newCollapsed) {
-        content.classList.remove('max-w-5xl');
-        content.classList.add('max-w-none');
-      } else {
-        content.classList.remove('max-w-none');
-        content.classList.add('max-w-5xl');
       }
     });
     
@@ -330,7 +290,7 @@ export function DocsSidebar({ items, className }: DocsSidebarProps) {
         {!isCollapsed && (
           <div className="flex-shrink-0 p-4 border-b border-border/30">
             <div className="relative group">
-              <div className="absolute inset-0 rounded-xl bg-black/5 dark:bg-white/5 blur-sm"></div>
+              <div className="absolute inset-0 rounded-xl blur-sm"></div>
                           <div className="absolute inset-[1px] rounded-[11px] border border-black/5 dark:border-white/10 shadow-inner bg-muted/30 dark:bg-black/20"></div>              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors duration-200 z-10" />
               <input
                 className={cn(
@@ -524,7 +484,7 @@ export function DocsSidebar({ items, className }: DocsSidebarProps) {
                         {authorConfig.name}
                       </h4>
                       <div className="flex items-center gap-1">
-                        <Star className="h-3 w-3 text-yellow-500 fill-current" />
+                        {/* <Star className="h-3 w-3 text-yellow-500 fill-current" /> */}
                         {isAuthorExpanded ? (
                           <ChevronUp className="h-3 w-3 text-muted-foreground" />
                         ) : (

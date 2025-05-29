@@ -190,16 +190,16 @@ export function JsonFormatter({ className }: JsonFormatterProps) {
 
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
-            <label className="text-sm text-muted-foreground">缩进:</label>
+            <label className="text-sm text-muted-foreground font-medium">缩进:</label>
             <select
               value={indentSize}
               onChange={(e) => handleIndentChange(Number(e.target.value))}
-              className="px-2 py-1 text-xs border rounded bg-background"
+              className="px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 shadow-sm hover:border-gray-400 dark:hover:border-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 min-w-[80px]"
             >
-              <option value={0}>压缩</option>
-              <option value={2}>2空格</option>
-              <option value={4}>4空格</option>
-              <option value={8}>8空格</option>
+              <option value={0} className="py-2 px-3 text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800">压缩</option>
+              <option value={2} className="py-2 px-3 text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800">2空格</option>
+              <option value={4} className="py-2 px-3 text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800">4空格</option>
+              <option value={8} className="py-2 px-3 text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800">8空格</option>
             </select>
           </div>
 
@@ -226,15 +226,47 @@ export function JsonFormatter({ className }: JsonFormatterProps) {
 
       {/* JSON学习卡片 */}
       {showLearningCard && (
-        <div className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 rounded-lg border border-blue-200 dark:border-blue-800">
-          <h3 className="text-lg font-semibold mb-3 text-blue-900 dark:text-blue-100">JSON 快速学习</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div className="p-6 bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-blue-950/40 dark:via-indigo-950/40 dark:to-purple-950/40 rounded-xl border border-blue-200/60 dark:border-blue-800/60 shadow-lg">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="p-3 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl shadow-lg">
+              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+              </svg>
+            </div>
+            <div>
+              <h3 className="text-xl font-bold text-blue-900 dark:text-blue-100">JSON 语法学习</h3>
+              <p className="text-sm text-blue-700 dark:text-blue-300">掌握 JSON 的核心语法和最佳实践</p>
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {learningTips.map((tip, index) => (
-              <div key={index} className="p-3 bg-white/60 dark:bg-gray-800/60 rounded border">
-                <h4 className="font-medium text-blue-800 dark:text-blue-200 mb-1">{tip.title}</h4>
-                <p className="text-sm text-gray-600 dark:text-gray-300">{tip.content}</p>
+              <div 
+                key={index} 
+                className="group relative p-5 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-xl border border-white/60 dark:border-gray-700/60 shadow-md hover:shadow-lg transition-all duration-300 hover:-translate-y-1"
+              >
+                <div className="absolute top-4 right-4 w-8 h-8 bg-gradient-to-br from-blue-100 to-indigo-100 dark:from-blue-900/50 dark:to-indigo-900/50 rounded-full flex items-center justify-center">
+                  <span className="text-xs font-bold text-blue-600 dark:text-blue-400">{index + 1}</span>
+                </div>
+                <div className="pr-10">
+                  <h4 className="font-semibold text-blue-800 dark:text-blue-200 mb-2 text-base">{tip.title}</h4>
+                  <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">{tip.content}</p>
+                </div>
+                
+                {/* 底部装饰线 */}
+                <div className="absolute bottom-0 left-5 right-5 h-0.5 bg-gradient-to-r from-blue-200 via-indigo-200 to-purple-200 dark:from-blue-800 dark:via-indigo-800 dark:to-purple-800 rounded-full opacity-60 group-hover:opacity-100 transition-opacity"></div>
               </div>
             ))}
+          </div>
+          
+          {/* 关闭按钮 */}
+          <div className="flex justify-center mt-6">
+            <button
+              onClick={() => setShowLearningCard(false)}
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors duration-200 shadow-md hover:shadow-lg"
+            >
+              收起学习卡片
+            </button>
           </div>
         </div>
       )}
@@ -271,8 +303,8 @@ export function JsonFormatter({ className }: JsonFormatterProps) {
                 onChange={(e) => handleInputChange(e.target.value)}
                 placeholder="在此粘贴或输入您的 JSON 数据..."
                 className={cn(
-                  "flex-1 h-full p-4 font-mono text-sm border border-l-0 rounded-r-lg resize-none",
-                  "bg-background focus:ring-2 focus:ring-primary focus:border-transparent",
+                  "flex-1 h-full p-4 font-mono text-sm border border-l-0 rounded-r-lg resize-none outline-none",
+                  "bg-background",
                   error ? "border-red-500 bg-red-50/50 dark:bg-red-950/20" : "border-border"
                 )}
                 spellCheck={false}
@@ -349,7 +381,7 @@ export function JsonFormatter({ className }: JsonFormatterProps) {
                 readOnly
                 placeholder="格式化后的 JSON 将显示在这里..."
                 className={cn(
-                  "flex-1 h-full p-4 font-mono text-sm border resize-none bg-muted/30 focus:ring-2 focus:ring-primary focus:border-transparent",
+                  "flex-1 h-full p-4 font-mono text-sm border resize-none bg-muted/30 outline-none",
                   output ? "border-l-0 rounded-r-lg" : "rounded-lg"
                 )}
                 spellCheck={false}

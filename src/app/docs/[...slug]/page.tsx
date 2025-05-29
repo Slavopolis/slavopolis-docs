@@ -37,37 +37,100 @@ export async function generateStaticParams() {
     const { getAllDocSlugs } = await import('@/lib/docs-content');
     const slugs = await getAllDocSlugs();
     
-    // 构建正确的参数格式
+    // 构建正确的参数格式并确保正确处理中文路径
     const params = slugs.map((slug) => {
-      const segments = slug.split('/');
+      // 先解码，确保不会重复编码
+      const decodedSlug = decodeURIComponent(slug);
+      const segments = decodedSlug.split('/');
       return { slug: segments };
     });
     
+    // 为了确保兼容性，同时添加编码后的路径参数
+    const encodedParams = slugs.map((slug) => {
+      const decodedSlug = decodeURIComponent(slug);
+      const segments = decodedSlug.split('/');
+      // 对每个段进行 URL 编码
+      const encodedSegments = segments.map(segment => encodeURIComponent(segment));
+      return { slug: encodedSegments };
+    });
+    
     // 调试信息
-    console.log(`generateStaticParams 生成了 ${params.length} 个路径参数`);
+    console.log(`generateStaticParams 生成了 ${params.length} 个未编码路径参数`);
+    console.log(`generateStaticParams 生成了 ${encodedParams.length} 个编码路径参数`);
     
-    // 检查特定路径
-    const specificPath = "人工智能/规则汇总";
-    const hasPath = params.some(param => 
-      param.slug.join('/') === specificPath
-    );
-    console.log(`是否包含路径 "${specificPath}": ${hasPath}`);
-    
-    // 手动添加可能缺失的中文路径
+    // 手动添加可能缺失的路径，确保包含问题中提到的路径
     const additionalPaths = [
+      // 以下是特别确保的中文路径（未编码）
+      { slug: ['安装手册', 'canal'] },
+      { slug: ['安装手册', 'mysql'] },
+      { slug: ['安装手册', 'redis'] },
+      { slug: ['安装手册', 'docker'] },
+      { slug: ['安装手册', 'nacos'] },
+      { slug: ['安装手册', 'nginx'] },
+      { slug: ['安装手册', 'java'] },
+      { slug: ['安装手册', 'elastic'] },
+      { slug: ['安装手册', 'kibana'] },
+      { slug: ['安装手册', 'minio'] },
+      { slug: ['安装手册', 'prometheus'] },
+      { slug: ['安装手册', 'rocketmq'] },
+      { slug: ['安装手册', 'seata'] },
+      { slug: ['安装手册', 'sentinel'] },
       { slug: ['人工智能', '规则汇总'] },
       { slug: ['建站手册', '站点配置'] },
       { slug: ['开发指南', '主题定制'] },
+      // 以下是编码后的路径
+      { slug: [encodeURIComponent('安装手册'), encodeURIComponent('canal')] },
+      { slug: [encodeURIComponent('人工智能'), encodeURIComponent('规则汇总')] },
+      { slug: [encodeURIComponent('建站手册'), encodeURIComponent('站点配置')] },
+      { slug: [encodeURIComponent('开发指南'), encodeURIComponent('主题定制')] },
     ];
     
-    // 合并所有路径参数
-    const allParams = [...params, ...additionalPaths];
+    // 检查是否已经包含了特定路径，使用字符串比较而不是数组比较
+    const containsPath = (path: string[]): boolean => {
+      const pathStr = path.join('/');
+      return [...params, ...encodedParams].some(param => param.slug.join('/') === pathStr);
+    };
+    
+    // 只添加不重复的路径
+    const filteredAdditionalPaths = additionalPaths.filter(
+      path => !containsPath(path.slug)
+    );
+    
+    // 合并所有路径参数：原始路径 + 编码路径 + 额外路径
+    const allParams = [...params, ...encodedParams, ...filteredAdditionalPaths];
+    
+    // 特别确认关键路径是否被包含
+    const criticalPaths = [
+      ['安装手册', 'canal'],
+      ['人工智能', '规则汇总'],
+      [encodeURIComponent('人工智能'), encodeURIComponent('规则汇总')]
+    ];
+    
+    criticalPaths.forEach(criticalPath => {
+      const hasCriticalPath = allParams.some(
+        param => param.slug.length === criticalPath.length && 
+          param.slug.every((segment, i) => segment === criticalPath[i])
+      );
+      console.log(`是否包含关键路径 "${criticalPath.join('/')}": ${hasCriticalPath}`);
+    });
+    
     console.log(`添加额外路径后，总共 ${allParams.length} 个路径参数`);
+    
+    // 打印前几个路径，便于调试
+    console.log('前10个生成的路径参数:', allParams.slice(0, 10).map(p => p.slug.join('/')));
     
     return allParams;
   } catch (error) {
     console.error('Error generating static params:', error);
-    return [{ slug: ['getting-started'] }];
+    // 出错时至少返回一些基本路径，确保包含问题路径
+    return [
+      { slug: ['getting-started'] },
+      { slug: ['安装手册', 'canal'] },
+      { slug: ['安装手册', 'mysql'] },
+      { slug: ['安装手册', 'redis'] },
+      { slug: ['人工智能', '规则汇总'] },
+      { slug: [encodeURIComponent('人工智能'), encodeURIComponent('规则汇总')] },
+    ];
   }
 }
 
@@ -94,10 +157,10 @@ export default async function DocsPage({ params }: DocsPageProps) {
       {/* 右侧主内容区 */}
       <main className="min-h-screen lg:ml-80 transition-all duration-300" id="docs-main-content">
               <div className="p-4 lg:p-6">
-          <div className="mx-auto transition-all duration-300 max-w-7xl" id="docs-container">
+          <div className="mx-auto transition-all duration-300" id="docs-container">
             <div className="flex gap-8">
               {/* 主要内容区域 */}
-              <div className="flex-1 min-w-0 transition-all duration-300 max-w-5xl" id="docs-content">
+              <div className="flex-1 min-w-0 transition-all duration-300" id="docs-content">
                 <div className="bg-background/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-border/50 overflow-hidden">
                   <div className="px-8 py-8 lg:px-12 lg:py-10">
                     {/* 面包屑导航 */}
@@ -125,7 +188,7 @@ export default async function DocsPage({ params }: DocsPageProps) {
                     </nav>
 
                     {/* 文章头部信息 */}
-                    <header className="mb-10">
+                    <header className="mb-1">
                       <h1 className="text-4xl lg:text-5xl font-bold tracking-tight mb-6 bg-gradient-to-r from-gray-900 via-gray-800 to-gray-600 dark:from-white dark:via-gray-200 dark:to-gray-400 bg-clip-text text-transparent">
                         {doc.frontMatter.title}
                       </h1>
@@ -195,12 +258,12 @@ export default async function DocsPage({ params }: DocsPageProps) {
                         </div>
                         
                         <div className="flex items-center gap-4">
-                          <button className="inline-flex items-center gap-2 px-4 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
+                          {/* <button className="inline-flex items-center gap-2 px-4 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
                             </svg>
                             收藏
-                          </button>
+                          </button> */}
                           
                           <button className="inline-flex items-center gap-2 px-4 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -212,7 +275,7 @@ export default async function DocsPage({ params }: DocsPageProps) {
                           <a 
                             href={`https://github.com/slavopolis/slavopolis-docs/edit/main/content/docs/${slugPath}.md`}
                             target="_blank"
-                            className="inline-flex items-center gap-2 px-4 py-2 text-sm bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
+                                                      className="inline-flex items-center gap-2 px-4 py-2 text-sm bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
                           >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
