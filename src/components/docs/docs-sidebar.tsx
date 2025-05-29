@@ -6,7 +6,6 @@ import { ClientSearchResult, highlightText, useSearch } from '@/hooks/use-search
 import type { DocItem } from '@/lib/docs';
 import { cn } from '@/lib/utils';
 import {
-    Book,
     BookOpen,
     Box,
     ChevronDown,
@@ -14,8 +13,6 @@ import {
     ChevronRight,
     ChevronUp,
     Code2,
-    Cpu,
-    Database,
     ExternalLink,
     FileCode,
     Folder,
@@ -25,15 +22,12 @@ import {
     Hash,
     Mail,
     Menu,
-    Palette,
     Search,
     SearchX,
     Settings,
-    Shield,
     Sparkles,
     User,
-    X,
-    Zap
+    X
 } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
@@ -661,23 +655,24 @@ function DocsSidebarItem({ item, level = 0, isCollapsed = false }: DocsSidebarIt
       const title = item.title.toLowerCase();
       const href = item.href?.toLowerCase() || '';
       
-      if (title.includes('mysql') || title.includes('数据库') || href.includes('mysql')) {
-        return <Database className="h-3.5 w-3.5 text-emerald-600" />;
-      } else if (title.includes('markdown') || title.includes('语法') || href.includes('markdown')) {
+    //   if (title.includes('mysql') || title.includes('数据库') || href.includes('mysql')) {
+    //     return <Database className="h-3.5 w-3.5 text-emerald-600" />;
+    //   } else if (title.includes('markdown') || title.includes('语法') || href.includes('markdown')) {
+    //     return <Code2 className="h-3.5 w-3.5 text-purple-600" />;
+    //   } else if (title.includes('规则') || title.includes('配置') || title.includes('指南')) {
+    //     return <Shield className="h-3.5 w-3.5 text-blue-600" />;
+    //   } else if (title.includes('特性') || title.includes('功能')) {
+    //     return <Zap className="h-3.5 w-3.5 text-yellow-600" />;
+    //   } else if (title.includes('部署') || title.includes('构建')) {
+    //     return <Cpu className="h-3.5 w-3.5 text-orange-600" />;
+    //   } else if (title.includes('主题') || title.includes('样式') || title.includes('设计')) {
+    //     return <Palette className="h-3.5 w-3.5 text-pink-600" />;
+    //   } else if (title.includes('文档') || title.includes('教程') || title.includes('开发')) {
+    //     return <Book className="h-3.5 w-3.5 text-indigo-600" />;
+    //   } else {
+    //     return <FileCode className="h-3.5 w-3.5 text-slate-600 dark:text-slate-400" />;
+    //   }
         return <Code2 className="h-3.5 w-3.5 text-purple-600" />;
-      } else if (title.includes('规则') || title.includes('配置') || title.includes('指南')) {
-        return <Shield className="h-3.5 w-3.5 text-blue-600" />;
-      } else if (title.includes('特性') || title.includes('功能')) {
-        return <Zap className="h-3.5 w-3.5 text-yellow-600" />;
-      } else if (title.includes('部署') || title.includes('构建')) {
-        return <Cpu className="h-3.5 w-3.5 text-orange-600" />;
-      } else if (title.includes('主题') || title.includes('样式') || title.includes('设计')) {
-        return <Palette className="h-3.5 w-3.5 text-pink-600" />;
-      } else if (title.includes('文档') || title.includes('教程') || title.includes('开发')) {
-        return <Book className="h-3.5 w-3.5 text-indigo-600" />;
-      } else {
-        return <FileCode className="h-3.5 w-3.5 text-slate-600 dark:text-slate-400" />;
-      }
     }
   };
 

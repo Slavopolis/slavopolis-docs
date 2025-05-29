@@ -55,10 +55,10 @@ export const MODEL_CONFIGS = {
 };
 
 export const TEMPERATURE_PRESETS = {
-  code: { value: 0.0, label: '代码生成/数学解题', description: '精确、确定性的输出' },
-  analysis: { value: 1.0, label: '数据分析', description: '平衡的分析能力' },
+  code: { value: 0.1, label: '代码生成', description: '精确、确定性的输出' },
+  analysis: { value: 0.8, label: '数据分析', description: '平衡的分析能力' },
   chat: { value: 1.3, label: '通用对话', description: '自然的对话体验' },
-  translation: { value: 1.3, label: '翻译', description: '准确的翻译质量' },
+  translation: { value: 0.3, label: '翻译', description: '准确的翻译质量' },
   creative: { value: 1.5, label: '创意写作', description: '富有创意的输出' },
 };
 

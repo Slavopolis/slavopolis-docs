@@ -101,15 +101,18 @@ export function AiChatContainer() {
     
     if (currentSessionId === sessionId) {
       const remainingSessions = sessions.filter(s => s.id !== sessionId);
-      if (remainingSessions.length > 0 && remainingSessions[0]) {
-        setCurrentSessionId(remainingSessions[0].id);
-        ChatStorage.setCurrentSessionId(remainingSessions[0].id);
+      if (remainingSessions.length > 0) {
+        const firstSession = remainingSessions[0];
+        if (firstSession) {
+          setCurrentSessionId(firstSession.id);
+          ChatStorage.setCurrentSessionId(firstSession.id);
+        }
       } else {
         setCurrentSessionId(null);
-        createNewSession();
+        ChatStorage.setCurrentSessionId('');
       }
     }
-  }, [currentSessionId, sessions, createNewSession]);
+  }, [sessions, currentSessionId]);
 
   // 导出会话
   const exportSession = useCallback((session: ChatSession) => {
@@ -127,11 +130,13 @@ export function AiChatContainer() {
 
   // 更新会话
   const updateSession = useCallback((sessionId: string, updates: Partial<ChatSession>) => {
-    setSessions(prev => prev.map(session => 
-      session.id === sessionId 
-        ? { ...session, ...updates, updatedAt: Date.now() }
-        : session
-    ));
+    setSessions(prev => 
+      prev.map(session => 
+        session.id === sessionId 
+          ? { ...session, ...updates, updatedAt: Date.now() }
+          : session
+      )
+    );
     
     const updatedSession = sessions.find(s => s.id === sessionId);
     if (updatedSession) {
@@ -140,7 +145,7 @@ export function AiChatContainer() {
   }, [sessions]);
 
   // 发送消息
-  const sendMessage = useCallback(async (content: string, useReasoning: boolean = false) => {
+  const sendMessage = useCallback(async (content: string, useReasoning: boolean = false, customSystemPrompt?: string) => {
     if (!content.trim() || isStreaming) return;
 
     let session = currentSession;
@@ -176,6 +181,11 @@ export function AiChatContainer() {
     const chatSettings: ChatSettings = useReasoning 
       ? { ...settings, model: 'deepseek-reasoner' as const }
       : settings;
+    
+    // 如果有自定义系统提示，临时使用它
+    if (customSystemPrompt) {
+      chatSettings.systemMessage = customSystemPrompt;
+    }
     
     updateSession(session.id, { 
       messages: updatedMessages,
@@ -280,12 +290,22 @@ export function AiChatContainer() {
   }, [currentSession, updateSession]);
 
   // 更新设置
-  const updateSettings = useCallback((newSettings: ChatSettings) => {
-    setSettings(newSettings);
+  const updateSettings = useCallback((newSettings: Partial<ChatSettings>) => {
+    setSettings(prev => ({ ...prev, ...newSettings }));
+  }, []);
+
+  // 快速更新当前会话的设置
+  const updateCurrentSessionSettings = useCallback((newSettings: Partial<ChatSettings>) => {
+    // 更新全局设置
+    updateSettings(newSettings);
+    
+    // 如果有当前会话，也更新会话的设置
     if (currentSession) {
-      updateSession(currentSession.id, { settings: newSettings });
+      updateSession(currentSession.id, {
+        settings: { ...currentSession.settings, ...newSettings }
+      });
     }
-  }, [currentSession, updateSession]);
+  }, [currentSession, updateSettings, updateSession]);
 
   // 处理设置面板
   const handleSettingsClick = useCallback(() => {
@@ -461,6 +481,8 @@ export function AiChatContainer() {
               onStop={stopGeneration}
               disabled={!currentSession}
               isStreaming={isStreaming}
+              currentSettings={settings}
+              onSettingsChange={updateCurrentSessionSettings}
             />
           </div>
         </div>

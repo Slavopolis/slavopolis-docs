@@ -203,7 +203,7 @@ export function ChatSessions({
                       )}
                       onClick={() => onSessionSelect(session.id)}
                     >
-                      <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-transparent border-2 border-gray-300 dark:border-gray-600 flex items-center justify-center shadow-sm">
+                      <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-transparent flex items-center justify-center shadow-sm">
                         <MessageSquare className="w-5 h-5 text-gray-600 dark:text-gray-400" />
                       </div>
 

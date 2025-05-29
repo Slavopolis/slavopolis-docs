@@ -35,7 +35,7 @@ function SiteCard({ link, websiteInfo, onRefresh }: SiteCardProps) {
         "group relative overflow-hidden rounded-xl border border-border/60 bg-card/80 backdrop-blur-sm",
         "transition-all duration-300 ease-out",
         "hover:border-border hover:bg-card/90 hover:shadow-lg hover:shadow-primary/5",
-        "hover:scale-[1.02] hover:-translate-y-1",
+        "hover:scale-[1.01] hover:-translate-y-0.5",
         isHovered && "ring-2 ring-primary/20"
       )}
       onMouseEnter={() => setIsHovered(true)}
@@ -49,51 +49,51 @@ function SiteCard({ link, websiteInfo, onRefresh }: SiteCardProps) {
         href={link.url}
         target="_blank"
         rel="noopener noreferrer"
-        className="relative block p-6 h-full"
+        className="relative block p-4 h-full"
       >
-        {/* 头部 */}
-        <div className="flex items-start justify-between mb-4">
-          <div className="flex items-center gap-3">
-            {/* 图标 */}
-            <div className={cn(
-              "flex-shrink-0 w-12 h-12 rounded-xl flex items-center justify-center",
-              "bg-muted/60 border border-border/40",
-              "group-hover:bg-primary/10 group-hover:border-primary/30",
-              "transition-all duration-300"
-            )}>
-              {isIconFont ? (
-                <Icon name={icon} className="text-xl text-foreground group-hover:text-primary transition-colors" fallback={link.fallbackIcon || '🔗'} />
-              ) : (
-                <span className="text-2xl">{icon}</span>
-              )}
-            </div>
+        {/* 紧凑布局：图标+标题在同一行 */}
+        <div className="flex items-start gap-3 mb-3">
+          {/* 图标 */}
+          <div className={cn(
+            "flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center",
+            "bg-muted/60 border border-border/40",
+            "group-hover:bg-primary/10 group-hover:border-primary/30",
+            "transition-all duration-300"
+          )}>
+            {isIconFont ? (
+              <Icon name={icon} className="text-lg text-foreground group-hover:text-primary transition-colors" fallback={link.fallbackIcon || '🔗'} />
+            ) : (
+              <span className="text-lg">{icon}</span>
+            )}
           </div>
 
-          {/* 外链图标 */}
-          <ExternalLink className={cn(
-            "h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100",
-            "transform translate-x-2 group-hover:translate-x-0 transition-all duration-300"
-          )} />
+          {/* 标题和外链图标 */}
+          <div className="flex-1 min-w-0 flex items-start justify-between">
+            <h3 className={cn(
+              "font-semibold text-base line-clamp-1 pr-2",
+              "text-foreground group-hover:text-primary transition-colors duration-300"
+            )}>
+              {title}
+            </h3>
+            
+            {/* 外链图标 */}
+            <ExternalLink className={cn(
+              "h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 flex-shrink-0",
+              "transform translate-x-2 group-hover:translate-x-0 transition-all duration-300"
+            )} />
+          </div>
         </div>
 
-        {/* 标题 */}
-        <h3 className={cn(
-          "font-semibold text-lg mb-2 line-clamp-1",
-          "text-foreground group-hover:text-primary transition-colors duration-300"
-        )}>
-          {title}
-        </h3>
-
         {/* 描述 */}
-        <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed">
+        <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed pl-13">
           {description}
         </p>
         
         {/* 访问按钮 */}
-        <div className="absolute bottom-3 right-3 opacity-0 group-hover:opacity-100 transition-all duration-300 z-10">
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-background dark:bg-slate-800 text-primary shadow-lg backdrop-blur-sm border border-border/50 transform group-hover:translate-y-0 translate-y-2 transition-all duration-300 hover:scale-105">
+        <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-all duration-300 z-10">
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-background dark:bg-slate-800 text-primary shadow-lg backdrop-blur-sm border border-border/50 transform group-hover:translate-y-0 translate-y-2 transition-all duration-300 hover:scale-105">
             <span className="text-xs font-medium">Visit</span>
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg" className="transform group-hover:translate-x-0.5 transition-transform duration-300">
+            <svg width="12" height="12" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg" className="transform group-hover:translate-x-0.5 transition-transform duration-300">
               <path d="M1 7H13M13 7L7 1M13 7L7 13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </div>
@@ -106,7 +106,7 @@ function SiteCard({ link, websiteInfo, onRefresh }: SiteCardProps) {
           onClick={handleRefresh}
           disabled={isLoading}
           className={cn(
-            "absolute top-3 right-3 w-8 h-8 rounded-lg bg-background/80 backdrop-blur-sm",
+            "absolute top-2 right-2 w-7 h-7 rounded-md bg-background/80 backdrop-blur-sm",
             "border border-border/60 flex items-center justify-center",
             "opacity-0 group-hover:opacity-100 transition-all duration-300",
             "hover:bg-primary/10 hover:border-primary/30",
@@ -114,7 +114,7 @@ function SiteCard({ link, websiteInfo, onRefresh }: SiteCardProps) {
           )}
         >
           <Zap className={cn(
-            "h-4 w-4 text-muted-foreground",
+            "h-3.5 w-3.5 text-muted-foreground",
             isLoading && "animate-spin"
           )} />
         </button>
@@ -241,11 +241,19 @@ export function SiteNavigation() {
 
     try {
       const info = await parseWebsite(link.url, { 
-        fallbackIcon: link.fallbackIcon || '🌐' 
+        fallbackIcon: link.fallbackIcon || '🌐',
+        timeout: 10000 // 10秒超时
       });
       setWebsiteInfoMap(prev => new Map(prev).set(linkId, info));
     } catch (error) {
-      console.error('Failed to refresh link:', error);
+      console.warn(`Failed to refresh link ${linkId}:`, error);
+      // 设置fallback信息
+      setWebsiteInfoMap(prev => new Map(prev).set(linkId, {
+        title: link.title,
+        description: link.description,
+        icon: link.icon || link.fallbackIcon || '🌐',
+        url: link.url
+      }));
     }
   }, []);
 
@@ -253,21 +261,51 @@ export function SiteNavigation() {
   const loadWebsiteInfo = useCallback(async () => {
     setIsLoadingAll(true);
     try {
-      const results = await Promise.allSettled(
-        linkItems.map(async (link) => {
-          const info = await parseWebsite(link.url, { 
-            fallbackIcon: link.fallbackIcon || '🌐' 
-          });
-          return { id: link.id, info };
-        })
-      );
+      // 分批加载，每批5个，避免并发过多
+      const batchSize = 5;
+      const batches = [];
+      for (let i = 0; i < linkItems.length; i += batchSize) {
+        batches.push(linkItems.slice(i, i + batchSize));
+      }
 
       const newMap = new Map<string, WebsiteInfo>();
-      results.forEach((result) => {
-        if (result.status === 'fulfilled') {
-          newMap.set(result.value.id, result.value.info);
+      
+      for (const batch of batches) {
+        const results = await Promise.allSettled(
+          batch.map(async (link) => {
+            try {
+              const info = await parseWebsite(link.url, { 
+                fallbackIcon: link.fallbackIcon || '🌐',
+                timeout: 8000 // 8秒超时
+              });
+              return { id: link.id, info };
+            } catch (error) {
+              console.warn(`Failed to parse ${link.url}:`, error);
+              // 返回fallback信息
+              return { 
+                id: link.id, 
+                info: {
+                  title: link.title,
+                  description: link.description,
+                  icon: link.icon || link.fallbackIcon || '🌐',
+                  url: link.url
+                }
+              };
+            }
+          })
+        );
+
+        results.forEach((result) => {
+          if (result.status === 'fulfilled') {
+            newMap.set(result.value.id, result.value.info);
+          }
+        });
+
+        // 批次间延迟，避免过于频繁的请求
+        if (batches.indexOf(batch) < batches.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
         }
-      });
+      }
 
       setWebsiteInfoMap(newMap);
     } catch (error) {
@@ -278,23 +316,45 @@ export function SiteNavigation() {
   }, []);
 
   useEffect(() => {
-    // 初始加载部分站点的信息
-    Promise.allSettled(
-      linkItems.slice(0, 8).map(async (link) => {
-        const info = await parseWebsite(link.url, { 
-          fallbackIcon: link.fallbackIcon || '🌐' 
+    // 初始加载部分站点的信息，使用更保守的策略
+    const loadInitialInfo = async () => {
+      try {
+        const results = await Promise.allSettled(
+          linkItems.slice(0, 6).map(async (link) => {
+            try {
+              const info = await parseWebsite(link.url, { 
+                fallbackIcon: link.fallbackIcon || '🌐',
+                timeout: 5000 // 5秒超时
+              });
+              return { id: link.id, info };
+            } catch (error) {
+              console.warn(`Failed to parse ${link.url}:`, error);
+              return { 
+                id: link.id, 
+                info: {
+                  title: link.title,
+                  description: link.description,
+                  icon: link.icon || link.fallbackIcon || '🌐',
+                  url: link.url
+                }
+              };
+            }
+          })
+        );
+
+        const newMap = new Map<string, WebsiteInfo>();
+        results.forEach((result) => {
+          if (result.status === 'fulfilled') {
+            newMap.set(result.value.id, result.value.info);
+          }
         });
-        return { id: link.id, info };
-      })
-    ).then((results) => {
-      const newMap = new Map<string, WebsiteInfo>();
-      results.forEach((result) => {
-        if (result.status === 'fulfilled') {
-          newMap.set(result.value.id, result.value.info);
-        }
-      });
-      setWebsiteInfoMap(newMap);
-    });
+        setWebsiteInfoMap(newMap);
+      } catch (error) {
+        console.error('Failed to load initial website info:', error);
+      }
+    };
+
+    loadInitialInfo();
   }, []);
 
   const groups = groupedLinks();
@@ -328,7 +388,7 @@ export function SiteNavigation() {
               "px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200",
               "border border-border/60",
               selectedCategory === 'all'
-                ? "bg-primary text-primary-foreground border-primary"
+                ? "bg-primary text-white border-primary"
                 : "bg-background/80 text-foreground hover:bg-accent/60"
             )}
           >
@@ -342,7 +402,7 @@ export function SiteNavigation() {
                 "px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200",
                 "border border-border/60",
                 selectedCategory === category.id
-                  ? "bg-primary text-primary-foreground border-primary"
+                  ? "bg-primary text-white border-primary"
                   : "bg-background/80 text-foreground hover:bg-accent/60"
               )}
             >

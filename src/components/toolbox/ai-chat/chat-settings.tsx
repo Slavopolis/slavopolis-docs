@@ -2,17 +2,8 @@
 
 import { Icon } from '@/components/iconfont-loader';
 import {
-    addUserPromptTemplate,
-    clearUserPromptTemplates,
-    deleteUserPromptTemplate,
-    exportUserPrompts,
-    getUserPromptTemplates,
-    importUserPrompts,
     PROMPT_CATEGORIES,
-    SYSTEM_PROMPT_TEMPLATES,
-    updateUserPromptTemplate,
-    USER_PROMPT_CONFIG,
-    type PromptTemplate
+    SYSTEM_PROMPT_TEMPLATES
 } from '@/config/prompt.config';
 import {
     ChatSettings,
@@ -28,14 +19,11 @@ import {
     Cpu,
     CreditCard,
     DollarSign,
-    Download,
-    Edit3,
     ExternalLink,
     Filter,
     Hash,
     Info,
     MessageSquare,
-    Plus,
     RefreshCw,
     RotateCcw,
     Save,
@@ -44,8 +32,6 @@ import {
     Sliders,
     Sparkles,
     Thermometer,
-    Trash2,
-    Upload,
     User,
     Wallet,
     X,
@@ -116,23 +102,9 @@ export function ChatSettingsPanel({
     onConfirm: () => {}
   });
 
-  // 提示词管理相关状态
-  const [userPrompts, setUserPrompts] = useState<PromptTemplate[]>([]);
+  // 提示词筛选相关状态
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
-  const [editingPrompt, setEditingPrompt] = useState<PromptTemplate | null>(null);
-  const [previewPrompt, setPreviewPrompt] = useState<PromptTemplate | null>(null);
-  const [isCreatingNew, setIsCreatingNew] = useState(false);
-  const [editingInline, setEditingInline] = useState<string | null>(null);
-  const [promptFormData, setPromptFormData] = useState({
-    name: '',
-    description: '',
-    prompt: '',
-    icon: 'icon-yingyongguanli',
-    category: 'development',
-    tags: [] as string[],
-    cacheDuration: USER_PROMPT_CONFIG.CACHE_DURATION.DEFAULT
-  });
 
   // 提示框管理函数
   const showToast = useCallback((toast: Omit<ToastMessage, 'id'>) => {
@@ -250,83 +222,6 @@ export function ChatSettingsPanel({
   const handleTopUp = () => {
     window.open('https://platform.deepseek.com/top_up', '_blank');
   };
-
-  // 加载用户自定义提示词
-  const loadUserPrompts = useCallback(() => {
-    setUserPrompts(getUserPromptTemplates());
-  }, []);
-
-  // 初始化时加载用户提示词
-  useEffect(() => {
-    loadUserPrompts();
-  }, [loadUserPrompts]);
-
-  // 提示词管理功能函数
-  const handleCreatePrompt = useCallback(() => {
-    try {
-      if (!promptFormData.name.trim()) {
-        showToast({
-          type: 'warning',
-          title: '请输入提示词名称',
-          message: '提示词名称不能为空'
-        });
-        return;
-      }
-      if (!promptFormData.description.trim()) {
-        showToast({
-          type: 'warning',
-          title: '请输入提示词描述',
-          message: '提示词描述不能为空'
-        });
-        return;
-      }
-      if (!promptFormData.prompt.trim()) {
-        showToast({
-          type: 'warning',
-          title: '请输入提示词内容',
-          message: '提示词内容不能为空'
-        });
-        return;
-      }
-
-      // 创建新提示词
-      addUserPromptTemplate({
-        name: promptFormData.name.trim(),
-        description: promptFormData.description.trim(),
-        prompt: promptFormData.prompt.trim(),
-        icon: 'icon-yingyongguanli',
-        category: promptFormData.category,
-        tags: promptFormData.tags
-      }, promptFormData.cacheDuration);
-
-      // 重新加载用户提示词
-      loadUserPrompts();
-
-      // 重置表单和状态
-      setIsCreatingNew(false);
-      setPromptFormData({
-        name: '',
-        description: '',
-        prompt: '',
-        icon: 'icon-yingyongguanli',
-        category: 'development',
-        tags: [],
-        cacheDuration: USER_PROMPT_CONFIG.CACHE_DURATION.DEFAULT
-      });
-
-      showToast({
-        type: 'success',
-        title: '提示词创建成功！',
-        message: `"${promptFormData.name.trim()}" 已保存到本地缓存`
-      });
-    } catch (error) {
-      showToast({
-        type: 'error',
-        title: '创建失败',
-        message: error instanceof Error ? error.message : '未知错误'
-      });
-    }
-  }, [promptFormData, loadUserPrompts, showToast]);
 
   return (
     <div className={cn("relative", className)}>
@@ -579,11 +474,48 @@ export function ChatSettingsPanel({
                   </div>
                 </div>
 
-                {/* 系统预设提示词 */}
+                {/* 当前系统消息预览 */}
+                {localSettings.systemMessage && (
                 <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/10 dark:to-indigo-900/10 rounded-xl p-5 border border-blue-200 dark:border-blue-800">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center">
+                        <MessageSquare className="w-5 h-5 text-white" />
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                          当前系统角色
+                        </h3>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                          {(() => {
+                            const currentTemplate = SYSTEM_PROMPT_TEMPLATES.find(t => t.prompt === localSettings.systemMessage);
+                            return currentTemplate ? currentTemplate.name : '自定义系统消息';
+                          })()}
+                        </p>
+                      </div>
+                    </div>
+                    
+                    <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-blue-200 dark:border-blue-700">
+                      <div className="text-sm text-gray-700 dark:text-gray-300 max-h-32 overflow-y-auto leading-relaxed">
+                        {localSettings.systemMessage}
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center justify-between mt-3">
+                      <span className="text-xs text-blue-600 dark:text-blue-400">
+                        💡 系统角色定义AI的行为和能力
+                      </span>
+                      <span className="text-xs text-gray-500 dark:text-gray-400">
+                        {localSettings.systemMessage.length} 字符
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                {/* 系统预设提示词 */}
+                <div className="bg-gradient-to-br from-slate-50 to-gray-50 dark:from-slate-900/10 dark:to-gray-900/10 rounded-xl p-5 border border-slate-200 dark:border-slate-800">
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center">
+                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-slate-600 to-gray-700 flex items-center justify-center">
                         <Shield className="w-5 h-5 text-white" />
                       </div>
                       <div>
@@ -591,13 +523,13 @@ export function ChatSettingsPanel({
                           系统预设提示词
                         </h3>
                         <p className="text-sm text-gray-600 dark:text-gray-400">
-                          专业优化的提示词模板，只读不可修改
+                          专业优化的提示词模板，点击选择应用
                         </p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 text-sm text-blue-600 dark:text-blue-400">
+                    <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
                       <Shield className="w-4 h-4" />
-                      <span>只读</span>
+                      <span>官方</span>
                     </div>
                   </div>
 
@@ -613,311 +545,71 @@ export function ChatSettingsPanel({
                         template.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()))
                       )
                       .map((template) => (
-                        <div
+                        <button
                           key={template.id}
+                          onClick={() => updateSetting('systemMessage', template.prompt)}
                           className={cn(
-                            "border rounded-lg transition-all duration-200 group relative",
+                            "text-left p-4 border rounded-lg transition-all duration-200 group relative",
                             localSettings.systemMessage === template.prompt
-                              ? "border-purple-500 bg-purple-50 dark:bg-purple-900/20 ring-2 ring-purple-200 dark:ring-purple-700"
-                              : "border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 hover:border-gray-300 dark:hover:border-gray-600"
+                              ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20 ring-2 ring-blue-200 dark:ring-blue-700 shadow-lg"
+                              : "border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600 hover:bg-gradient-to-br hover:from-blue-50 hover:to-indigo-50 dark:hover:from-blue-900/10 dark:hover:to-indigo-900/10 hover:shadow-md transform hover:scale-[1.02]"
                           )}
                         >
-                          {/* 编辑模式 */}
-                          {editingInline === template.id ? (
-                            <div className="p-4 bg-white dark:bg-gray-800 rounded-lg border border-purple-200 dark:border-purple-700">
-                              <div className="space-y-4">
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                  <div>
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                      名称 *
-                                    </label>
-                                    <input
-                                      type="text"
-                                      value={promptFormData.name}
-                                      onChange={(e) => setPromptFormData(prev => ({ ...prev, name: e.target.value }))}
-                                      placeholder="例如：专业翻译助手"
-                                      className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-                                    />
-                                  </div>
-                                  <div>
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                      分类 *
-                                    </label>
-                                    <select
-                                      value={promptFormData.category}
-                                      onChange={(e) => setPromptFormData(prev => ({ ...prev, category: e.target.value }))}
-                                      className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-                                    >
-                                      {PROMPT_CATEGORIES.map(category => (
-                                        <option key={category.id} value={category.id}>
-                                          {category.name}
-                                        </option>
-                                      ))}
-                                    </select>
-                                  </div>
-                                </div>
-                                
-                                <div>
-                                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                    描述 *
-                                  </label>
-                                  <input
-                                    type="text"
-                                    value={promptFormData.description}
-                                    onChange={(e) => setPromptFormData(prev => ({ ...prev, description: e.target.value }))}
-                                    placeholder="简要描述这个提示词的用途和特点"
-                                    className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-                                  />
-                                </div>
-
-                                <div>
-                                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                    提示词内容 *
-                                  </label>
-                                  <textarea
-                                    value={promptFormData.prompt}
-                                    onChange={(e) => setPromptFormData(prev => ({ ...prev, prompt: e.target.value }))}
-                                    placeholder="详细描述AI的角色、能力和行为方式..."
-                                    rows={4}
-                                    className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 resize-none"
-                                  />
-                                </div>
-
-                                <div className="flex items-center justify-between">
-                                  <button
-                                    onClick={() => {
-                                      setEditingInline(null);
-                                      setPromptFormData({
-                                        name: '',
-                                        description: '',
-                                        prompt: '',
-                                        icon: 'icon-yingyongguanli',
-                                        category: 'development',
-                                        tags: [],
-                                        cacheDuration: USER_PROMPT_CONFIG.CACHE_DURATION.DEFAULT
-                                      });
-                                    }}
-                                    className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 rounded-lg transition-colors"
-                                  >
-                                    取消
-                                  </button>
-                                  <button
-                                    onClick={() => {
-                                      try {
-                                        if (!promptFormData.name.trim()) {
-                                          showToast({
-                                            type: 'warning',
-                                            title: '请输入提示词名称',
-                                            message: '提示词名称不能为空'
-                                          });
-                                          return;
-                                        }
-                                        if (!promptFormData.description.trim()) {
-                                          showToast({
-                                            type: 'warning',
-                                            title: '请输入提示词描述',
-                                            message: '提示词描述不能为空'
-                                          });
-                                          return;
-                                        }
-                                        if (!promptFormData.prompt.trim()) {
-                                          showToast({
-                                            type: 'warning',
-                                            title: '请输入提示词内容',
-                                            message: '提示词内容不能为空'
-                                          });
-                                          return;
-                                        }
-
-                                        updateUserPromptTemplate(template.id, {
-                                          name: promptFormData.name.trim(),
-                                          description: promptFormData.description.trim(),
-                                          prompt: promptFormData.prompt.trim(),
-                                          icon: 'icon-yingyongguanli',
-                                          category: promptFormData.category,
-                                          tags: promptFormData.tags
-                                        });
-
-                                        loadUserPrompts();
-                                        setEditingInline(null);
-                                        setPromptFormData({
-                                          name: '',
-                                          description: '',
-                                          prompt: '',
-                                          icon: 'icon-yingyongguanli',
-                                          category: 'development',
-                                          tags: [],
-                                          cacheDuration: USER_PROMPT_CONFIG.CACHE_DURATION.DEFAULT
-                                        });
-
-                                        showToast({
-                                          type: 'success',
-                                          title: '提示词更新成功！',
-                                          message: `"${promptFormData.name.trim()}" 已更新`
-                                        });
-                                      } catch (error) {
-                                        showToast({
-                                          type: 'error',
-                                          title: '更新失败',
-                                          message: error instanceof Error ? error.message : '未知错误'
-                                        });
-                                      }
-                                    }}
-                                    disabled={!promptFormData.name.trim() || !promptFormData.description.trim() || !promptFormData.prompt.trim()}
-                                    className={cn(
-                                      "flex items-center gap-2 px-4 py-2 text-sm rounded-lg transition-all duration-200",
-                                      promptFormData.name.trim() && promptFormData.description.trim() && promptFormData.prompt.trim()
-                                        ? "bg-purple-600 text-white hover:bg-purple-700"
-                                        : "bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed"
-                                    )}
-                                  >
-                                    <Save className="w-4 h-4" />
-                                    更新
-                                  </button>
-                                </div>
-                              </div>
-                            </div>
-                          ) : (
-                            <>
-                              {/* 操作按钮 */}
-                              <div className="absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <button
-                                  onClick={() => {
-                                    setEditingInline(template.id);
-                                    setPromptFormData({
-                                      name: template.name,
-                                      description: template.description,
-                                      prompt: template.prompt,
-                                      icon: template.icon,
-                                      category: template.category,
-                                      tags: template.tags,
-                                      cacheDuration: USER_PROMPT_CONFIG.CACHE_DURATION.DEFAULT
-                                    });
-                                  }}
-                                  className="p-1 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 rounded transition-colors"
-                                  title="编辑提示词"
-                                >
-                                  <Edit3 className="w-3 h-3" />
-                                </button>
-                                <button
-                                  onClick={() => {
-                                    showConfirmDialog({
-                                      title: '删除提示词',
-                                      message: `确定要删除提示词 "${template.name}" 吗？此操作不可恢复。`,
-                                      confirmText: '删除',
-                                      cancelText: '取消',
-                                      type: 'danger',
-                                      onConfirm: () => {
-                                        try {
-                                          deleteUserPromptTemplate(template.id);
-                                          loadUserPrompts();
-                                          showToast({
-                                            type: 'success',
-                                            title: '删除成功',
-                                            message: `提示词 "${template.name}" 已删除`
-                                          });
-                                        } catch (error) {
-                                          showToast({
-                                            type: 'error',
-                                            title: '删除失败',
-                                            message: error instanceof Error ? error.message : '未知错误'
-                                          });
-                                        }
-                                        hideConfirmDialog();
-                                      },
-                                      onCancel: hideConfirmDialog
-                                    });
-                                  }}
-                                  className="p-1 text-gray-400 hover:text-red-600 dark:hover:text-red-400 rounded transition-colors"
-                                  title="删除提示词"
-                                >
-                                  <Trash2 className="w-3 h-3" />
-                                </button>
-                              </div>
-
-                              <div className="p-4">
                                 <div className="flex items-start gap-3">
                                   <div className="flex-shrink-0">
                                     <div className={cn(
-                                      "w-10 h-10 rounded-lg flex items-center justify-center",
+                                "w-10 h-10 rounded-lg flex items-center justify-center transition-all duration-200",
                                       localSettings.systemMessage === template.prompt
-                                        ? "bg-blue-100 dark:bg-blue-900/30"
-                                        : "bg-gray-100 dark:bg-gray-700 group-hover:bg-gray-200 dark:group-hover:bg-gray-600"
+                                  ? "bg-blue-100 dark:bg-blue-900/30 shadow-inner"
+                                  : "bg-gray-100 dark:bg-gray-700 group-hover:bg-gradient-to-br group-hover:from-blue-100 group-hover:to-indigo-100 dark:group-hover:from-blue-900/30 dark:group-hover:to-indigo-900/30"
                                     )}>
                                       <Icon 
                                         name={template.icon}
                                         className={cn(
-                                          "text-lg",
+                                    "text-lg transition-all duration-200",
                                           localSettings.systemMessage === template.prompt
                                             ? "text-blue-600 dark:text-blue-400"
-                                            : "text-gray-500 dark:text-gray-400 group-hover:text-gray-700 dark:group-hover:text-gray-300"
+                                      : "text-gray-500 dark:text-gray-400 group-hover:text-blue-600 dark:group-hover:text-blue-400"
                                         )}
                                         fallback="🤖"
                                       />
                                     </div>
                                   </div>
-                                  <div className="flex-1 min-w-0 pr-16">
-                                    <div className="font-medium text-gray-900 dark:text-gray-100 text-sm mb-1">
+                            <div className="flex-1 min-w-0">
+                              <div className={cn(
+                                "font-medium text-sm mb-2 transition-colors duration-200",
+                                localSettings.systemMessage === template.prompt
+                                  ? "text-blue-900 dark:text-blue-100"
+                                  : "text-gray-900 dark:text-gray-100 group-hover:text-blue-900 dark:group-hover:text-blue-100"
+                              )}>
                                       {template.name}
                                     </div>
-                                    <div className="text-xs text-gray-500 dark:text-gray-400 mb-2 line-clamp-2">
-                                      {template.description}
-                                    </div>
-                                    <div className="flex flex-wrap gap-1 mb-2">
-                                      {template.tags.slice(0, 2).map((tag, index) => (
-                                        <span
-                                          key={index}
-                                          className={cn(
-                                            "inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full border",
+                              <div className={cn(
+                                "text-xs line-clamp-3 transition-colors duration-200",
                                             localSettings.systemMessage === template.prompt
-                                              ? "bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-700"
-                                              : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-600"
-                                          )}
-                                        >
-                                          <span className="w-1.5 h-1.5 bg-current rounded-full mr-1.5"></span>
-                                          {tag}
-                                        </span>
-                                      ))}
-                                      {template.tags.length > 2 && (
-                                        <span className={cn(
-                                          "inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full border",
-                                          localSettings.systemMessage === template.prompt
-                                            ? "bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-700"
-                                            : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-600"
-                                        )}>
-                                          +{template.tags.length - 2}
-                                        </span>
-                                      )}
+                                  ? "text-blue-700 dark:text-blue-300"
+                                  : "text-gray-500 dark:text-gray-400 group-hover:text-blue-700 dark:group-hover:text-blue-300"
+                              )}>
+                                {template.description}
                                     </div>
-                                    {template.updatedAt && (
-                                      <div className="flex items-center gap-1 text-xs text-gray-400">
-                                        <Clock className="w-3 h-3" />
-                                        <span>
-                                          {new Date(template.updatedAt).toLocaleDateString()}
-                                        </span>
-                                      </div>
-                                    )}
-                                  </div>
                                 </div>
                               </div>
                               
                               {/* 选中状态指示器 */}
                               {localSettings.systemMessage === template.prompt && (
-                                <div className="px-4 pb-3">
-                                  <div className="flex items-center gap-2 text-xs text-purple-600 dark:text-purple-400">
-                                    <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-                                    <span>已选择</span>
+                            <div className="mt-3 pt-3 border-t border-blue-200 dark:border-blue-700">
+                              <div className="flex items-center gap-2 text-xs text-blue-600 dark:text-blue-400">
+                                <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+                                <span>当前选择</span>
                                   </div>
                                 </div>
                               )}
-                            </>
-                          )}
-                        </div>
+                        </button>
                       ))}
                   </div>
                 </div>
 
-                {/* 用户自定义提示词 */}
+                {/* 自定义提示词 - 即将推出 */}
                 <div className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/10 dark:to-pink-900/10 rounded-xl p-5 border border-purple-200 dark:border-purple-800">
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-3">
@@ -933,428 +625,56 @@ export function ChatSettingsPanel({
                         </p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-gray-500 dark:text-gray-400">
-                        {userPrompts.length}/{USER_PROMPT_CONFIG.MAX_USER_PROMPTS}
-                      </span>
-                      <button
-                        onClick={() => setIsCreatingNew(true)}
-                        disabled={userPrompts.length >= USER_PROMPT_CONFIG.MAX_USER_PROMPTS || isCreatingNew}
-                        className={cn(
-                          "flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-all duration-200",
-                          userPrompts.length >= USER_PROMPT_CONFIG.MAX_USER_PROMPTS || isCreatingNew
-                            ? "bg-gray-100 dark:bg-gray-700 text-gray-400 cursor-not-allowed"
-                            : "bg-purple-600 text-white hover:bg-purple-700 shadow-lg hover:shadow-xl transform hover:scale-105"
-                        )}
-                      >
-                        <Plus className="w-4 h-4" />
-                        新建
-                      </button>
+                    <div className="flex items-center gap-2 text-sm text-purple-600 dark:text-purple-400">
+                      <Clock className="w-4 h-4" />
+                      <span>即将推出</span>
                     </div>
                   </div>
 
-                  {/* 新建提示词表单 */}
-                  {isCreatingNew && (
-                    <div className="mb-4 p-4 bg-white dark:bg-gray-800 rounded-lg border border-purple-200 dark:border-purple-700">
-                      <div className="space-y-4">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                              名称 *
-                            </label>
-                            <input
-                              type="text"
-                              value={promptFormData.name}
-                              onChange={(e) => setPromptFormData(prev => ({ ...prev, name: e.target.value }))}
-                              placeholder="例如：专业翻译助手"
-                              className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-                            />
+                  <div className="text-center py-12">
+                    <div className="w-20 h-20 mx-auto mb-4 bg-gradient-to-br from-purple-100 to-pink-100 dark:from-purple-900/30 dark:to-pink-900/30 rounded-full flex items-center justify-center">
+                      <Sparkles className="w-10 h-10 text-purple-600 dark:text-purple-400" />
                           </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                              分类 *
-                            </label>
-                            <select
-                              value={promptFormData.category}
-                              onChange={(e) => setPromptFormData(prev => ({ ...prev, category: e.target.value }))}
-                              className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-                            >
-                              {PROMPT_CATEGORIES.map(category => (
-                                <option key={category.id} value={category.id}>
-                                  {category.name}
-                                </option>
-                              ))}
-                            </select>
+                    <h4 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                      自定义提示词功能即将上线
+                    </h4>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-4 max-w-md mx-auto">
+                      我们正在开发强大的自定义提示词功能，您将能够创建、编辑和管理个人专属的AI助手角色模板
+                    </p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-lg mx-auto text-left">
+                      <div className="flex items-center gap-2 text-sm text-purple-700 dark:text-purple-300">
+                        <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+                        <span>创建个人提示词模板</span>
                           </div>
+                      <div className="flex items-center gap-2 text-sm text-purple-700 dark:text-purple-300">
+                        <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+                        <span>分类管理和标签系统</span>
                         </div>
-                        
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                            描述 *
-                          </label>
-                          <input
-                            type="text"
-                            value={promptFormData.description}
-                            onChange={(e) => setPromptFormData(prev => ({ ...prev, description: e.target.value }))}
-                            placeholder="简要描述这个提示词的用途和特点"
-                            className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-                          />
+                      <div className="flex items-center gap-2 text-sm text-purple-700 dark:text-purple-300">
+                        <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+                        <span>导入导出提示词库</span>
                         </div>
-
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                            提示词内容 *
-                          </label>
-                          <textarea
-                            value={promptFormData.prompt}
-                            onChange={(e) => setPromptFormData(prev => ({ ...prev, prompt: e.target.value }))}
-                            placeholder="详细描述AI的角色、能力和行为方式..."
-                            rows={8}
-                            className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 resize-none"
-                          />
+                      <div className="flex items-center gap-2 text-sm text-purple-700 dark:text-purple-300">
+                        <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+                        <span>社区提示词分享</span>
                         </div>
-
-                        <div className="flex items-center justify-between">
-                          <button
-                            onClick={() => {
-                              setIsCreatingNew(false);
-                              setPromptFormData({
-                                name: '',
-                                description: '',
-                                prompt: '',
-                                icon: 'icon-yingyongguanli',
-                                category: 'development',
-                                tags: [],
-                                cacheDuration: USER_PROMPT_CONFIG.CACHE_DURATION.DEFAULT
-                              });
-                            }}
-                            className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 rounded-lg transition-colors"
-                          >
-                            取消
-                          </button>
-                          <button
-                            onClick={handleCreatePrompt}
-                            disabled={!promptFormData.name.trim() || !promptFormData.description.trim() || !promptFormData.prompt.trim()}
-                            className={cn(
-                              "flex items-center gap-2 px-4 py-2 text-sm rounded-lg transition-all duration-200",
-                              promptFormData.name.trim() && promptFormData.description.trim() && promptFormData.prompt.trim()
-                                ? "bg-purple-600 text-white hover:bg-purple-700"
-                                : "bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed"
-                            )}
-                          >
-                            <Save className="w-4 h-4" />
-                            创建
-                          </button>
                         </div>
                       </div>
                     </div>
-                  )}
 
-                  {userPrompts.length === 0 && !isCreatingNew ? (
-                    <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                {/* 系统消息说明 */}
+                {!localSettings.systemMessage && (
+                  <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-5 border border-gray-200 dark:border-gray-700">
+                    <div className="text-center py-8">
                       <div className="w-16 h-16 mx-auto mb-3 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center">
-                        <Sparkles className="w-8 h-8" />
+                        <MessageSquare className="w-8 h-8 text-gray-400" />
                       </div>
-                      <p className="text-sm">还没有自定义提示词</p>
-                      <p className="text-xs mt-1">点击"新建"按钮创建您的第一个提示词</p>
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                      {userPrompts
-                        .filter(template => 
-                          selectedCategory === 'all' || template.category === selectedCategory
-                        )
-                        .filter(template =>
-                          searchQuery === '' || 
-                          template.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          template.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          template.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()))
-                        )
-                        .map((template) => (
-                          <div
-                            key={template.id}
-                            className={cn(
-                              "border rounded-lg transition-all duration-200 group relative",
-                              localSettings.systemMessage === template.prompt
-                                ? "border-purple-500 bg-purple-50 dark:bg-purple-900/20 ring-2 ring-purple-200 dark:ring-purple-700"
-                                : "border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 hover:border-gray-300 dark:hover:border-gray-600"
-                            )}
-                          >
-                            {/* 操作按钮 */}
-                            <div className="absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                              <button
-                                onClick={() => {
-                                  setEditingInline(template.id);
-                                  setPromptFormData({
-                                    name: template.name,
-                                    description: template.description,
-                                    prompt: template.prompt,
-                                    icon: template.icon,
-                                    category: template.category,
-                                    tags: template.tags,
-                                    cacheDuration: USER_PROMPT_CONFIG.CACHE_DURATION.DEFAULT
-                                  });
-                                }}
-                                className="p-1 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 rounded transition-colors"
-                                title="编辑提示词"
-                              >
-                                <Edit3 className="w-3 h-3" />
-                              </button>
-                              <button
-                                onClick={() => {
-                                  showConfirmDialog({
-                                    title: '删除提示词',
-                                    message: `确定要删除提示词 "${template.name}" 吗？此操作不可恢复。`,
-                                    confirmText: '删除',
-                                    cancelText: '取消',
-                                    type: 'danger',
-                                    onConfirm: () => {
-                                      try {
-                                        deleteUserPromptTemplate(template.id);
-                                        loadUserPrompts();
-                                        showToast({
-                                          type: 'success',
-                                          title: '删除成功',
-                                          message: `提示词 "${template.name}" 已删除`
-                                        });
-                                      } catch (error) {
-                                        showToast({
-                                          type: 'error',
-                                          title: '删除失败',
-                                          message: error instanceof Error ? error.message : '未知错误'
-                                        });
-                                      }
-                                      hideConfirmDialog();
-                                    },
-                                    onCancel: hideConfirmDialog
-                                  });
-                                }}
-                                className="p-1 text-gray-400 hover:text-red-600 dark:hover:text-red-400 rounded transition-colors"
-                                title="删除提示词"
-                              >
-                                <Trash2 className="w-3 h-3" />
-                              </button>
-                            </div>
-
-                            <div className="p-4">
-                              <div className="flex items-start gap-3">
-                                <div className="flex-shrink-0">
-                                  <div className={cn(
-                                    "w-10 h-10 rounded-lg flex items-center justify-center",
-                                    localSettings.systemMessage === template.prompt
-                                      ? "bg-blue-100 dark:bg-blue-900/30"
-                                      : "bg-gray-100 dark:bg-gray-700 group-hover:bg-gray-200 dark:group-hover:bg-gray-600"
-                                  )}>
-                                    <Icon 
-                                      name={template.icon}
-                                      className={cn(
-                                        "text-lg",
-                                        localSettings.systemMessage === template.prompt
-                                          ? "text-blue-600 dark:text-blue-400"
-                                          : "text-gray-500 dark:text-gray-400 group-hover:text-gray-700 dark:group-hover:text-gray-300"
-                                      )}
-                                      fallback="🤖"
-                                    />
-                                  </div>
-                                </div>
-                                <div className="flex-1 min-w-0 pr-16">
-                                  <div className="font-medium text-gray-900 dark:text-gray-100 text-sm mb-1">
-                                    {template.name}
-                                  </div>
-                                  <div className="text-xs text-gray-500 dark:text-gray-400 mb-2 line-clamp-2">
-                                    {template.description}
-                                  </div>
-                                  <div className="flex flex-wrap gap-1 mb-2">
-                                    {template.tags.slice(0, 2).map((tag, index) => (
-                                      <span
-                                        key={index}
-                                        className={cn(
-                                          "inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full border",
-                                          localSettings.systemMessage === template.prompt
-                                            ? "bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-700"
-                                            : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-600"
-                                        )}
-                                      >
-                                        <span className="w-1.5 h-1.5 bg-current rounded-full mr-1.5"></span>
-                                        {tag}
-                                      </span>
-                                    ))}
-                                    {template.tags.length > 2 && (
-                                      <span className={cn(
-                                        "inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full border",
-                                        localSettings.systemMessage === template.prompt
-                                          ? "bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-700"
-                                          : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-600"
-                                      )}>
-                                        +{template.tags.length - 2}
-                                      </span>
-                                    )}
-                                  </div>
-                                  {template.updatedAt && (
-                                    <div className="flex items-center gap-1 text-xs text-gray-400">
-                                      <Clock className="w-3 h-3" />
-                                      <span>
-                                        {new Date(template.updatedAt).toLocaleDateString()}
-                                      </span>
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-                            
-                            {/* 选中状态指示器 */}
-                            {localSettings.systemMessage === template.prompt && (
-                              <div className="px-4 pb-3">
-                                <div className="flex items-center gap-2 text-xs text-purple-600 dark:text-purple-400">
-                                  <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-                                  <span>已选择</span>
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        ))}
-                    </div>
-                  )}
-
-                  {/* 管理操作 */}
-                  {userPrompts.length > 0 && (
-                    <div className="mt-4 pt-4 border-t border-purple-200 dark:border-purple-700">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => {
-                              const data = exportUserPrompts();
-                              const blob = new Blob([data], { type: 'application/json' });
-                              const url = URL.createObjectURL(blob);
-                              const a = document.createElement('a');
-                              a.href = url;
-                              a.download = `prompts_${new Date().toISOString().split('T')[0]}.json`;
-                              a.click();
-                              URL.revokeObjectURL(url);
-                            }}
-                            className="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-                          >
-                            <Download className="w-4 h-4" />
-                            导出
-                          </button>
-                          <label className="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors cursor-pointer">
-                            <Upload className="w-4 h-4" />
-                            导入
-                            <input
-                              type="file"
-                              accept=".json"
-                              className="hidden"
-                              onChange={(e) => {
-                                const file = e.target.files?.[0];
-                                if (file) {
-                                  const reader = new FileReader();
-                                  reader.onload = (event) => {
-                                    try {
-                                      const result = importUserPrompts(event.target?.result as string);
-                                      showToast({
-                                        type: 'success',
-                                        title: '导入完成',
-                                        message: `成功导入 ${result.success} 个提示词，失败 ${result.failed} 个`
-                                      });
-                                      loadUserPrompts();
-                                    } catch (error) {
-                                      showToast({
-                                        type: 'error',
-                                        title: '导入失败',
-                                        message: error instanceof Error ? error.message : '未知错误'
-                                      });
-                                    }
-                                  };
-                                  reader.readAsText(file);
-                                }
-                                e.target.value = '';
-                              }}
-                            />
-                          </label>
-                        </div>
-                        <button
-                          onClick={() => {
-                            showConfirmDialog({
-                              title: '清除所有提示词',
-                              message: '确定要清除所有自定义提示词吗？此操作不可恢复，所有自定义提示词将被永久删除。',
-                              confirmText: '清除全部',
-                              cancelText: '取消',
-                              type: 'danger',
-                              onConfirm: () => {
-                                clearUserPromptTemplates();
-                                loadUserPrompts();
-                                showToast({
-                                  type: 'success',
-                                  title: '清除完成',
-                                  message: '所有自定义提示词已清除'
-                                });
-                                hideConfirmDialog();
-                              },
-                              onCancel: hideConfirmDialog
-                            });
-                          }}
-                          className="flex items-center gap-2 px-3 py-2 text-sm text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                          清除全部
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* 当前系统消息预览 */}
-                <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-5">
-                  <label className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 mb-4">
-                    <MessageSquare className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                    当前系统消息（只读）
-                  </label>
-                  <div className="w-full h-40 px-4 py-3 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 overflow-y-auto">
-                    {localSettings.systemMessage || '暂无系统消息'}
-                  </div>
-                  <div className="flex items-center justify-between mt-2">
-                    <span className="text-xs text-gray-500 dark:text-gray-400">
-                      系统消息会在每次对话开始时发送给AI，请从上方提示词模板中选择
-                    </span>
-                    <span className="text-xs text-gray-500 dark:text-gray-400">
-                      {localSettings.systemMessage.length} 字符
-                    </span>
-                  </div>
-                </div>
-
-                {/* 当前选中的系统提示词详情 */}
-                {localSettings.systemMessage && (
-                  <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/10 dark:to-indigo-900/10 rounded-xl p-5 border border-blue-200 dark:border-blue-800">
-                    <div className="flex items-center gap-3 mb-4">
-                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center">
-                        <MessageSquare className="w-5 h-5 text-white" />
-                      </div>
-                      <div>
-                        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                          当前系统消息
-                        </h3>
+                      <h4 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                        暂未选择系统角色
+                      </h4>
                         <p className="text-sm text-gray-600 dark:text-gray-400">
-                          {(() => {
-                            const currentTemplate = SYSTEM_PROMPT_TEMPLATES.find(t => t.prompt === localSettings.systemMessage);
-                            return currentTemplate ? currentTemplate.name : '自定义系统消息';
-                          })()}
-                        </p>
-                      </div>
-                    </div>
-                    
-                    <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-blue-200 dark:border-blue-700">
-                      <pre className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap leading-relaxed max-h-40 overflow-y-auto">
-                        {localSettings.systemMessage}
-                      </pre>
-                    </div>
-                    
-                    <div className="flex items-center justify-between mt-3">
-                      <span className="text-xs text-blue-600 dark:text-blue-400">
-                        💡 点击上方提示词卡片可以切换系统消息
-                      </span>
-                      <span className="text-xs text-gray-500 dark:text-gray-400">
-                        {localSettings.systemMessage.length} 字符
-                      </span>
+                        请从上方提示词模板中选择一个系统角色，定义AI的行为和能力
+                      </p>
                     </div>
                   </div>
                 )}
@@ -1668,143 +988,6 @@ export function ChatSettingsPanel({
           </div>
         </div>
       </div>
-
-      {/* 预览提示词模态框 */}
-      {previewPrompt && (
-        <div className="fixed inset-0 z-80 flex items-center justify-center p-4">
-          {/* 遮罩 */}
-          <div 
-            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
-            onClick={() => setPreviewPrompt(null)}
-          />
-
-          {/* 模态框内容 */}
-          <div className="relative w-full max-w-3xl max-h-[90vh] bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-2xl overflow-hidden">
-            {/* 头部 */}
-            <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center">
-                  <i className={cn("iconfont text-xl text-white", previewPrompt.icon)} />
-                </div>
-                <div>
-                  <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
-                    {previewPrompt.name}
-                  </h3>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
-                    {previewPrompt.isSystem ? '系统预设提示词' : '用户自定义提示词'}
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => {
-                    updateSetting('systemMessage', previewPrompt.prompt);
-                    setPreviewPrompt(null);
-                  }}
-                  className="flex items-center gap-2 px-3 py-2 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-                >
-                  <Save className="w-4 h-4" />
-                  应用
-                </button>
-                <button
-                  onClick={() => setPreviewPrompt(null)}
-                  className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-            </div>
-
-            {/* 内容区域 */}
-            <div className="p-6 overflow-y-auto max-h-[calc(90vh-200px)]">
-              <div className="space-y-6">
-                {/* 基本信息 */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">描述</h4>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 rounded-lg p-3">
-                      {previewPrompt.description}
-                    </p>
-                  </div>
-                  <div>
-                    <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">分类</h4>
-                    <div className="flex items-center gap-2">
-                      {(() => {
-                        const category = PROMPT_CATEGORIES.find(c => c.id === previewPrompt.category);
-                        return category ? (
-                          <span className={cn(
-                            "px-3 py-1 text-sm rounded-full",
-                            `bg-${category.color}-100 dark:bg-${category.color}-900/30 text-${category.color}-700 dark:text-${category.color}-300`
-                          )}>
-                            {category.name}
-                          </span>
-                        ) : (
-                          <span className="px-3 py-1 text-sm bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 rounded-full">
-                            未知分类
-                          </span>
-                        );
-                      })()}
-                    </div>
-                  </div>
-                </div>
-
-                {/* 标签 */}
-                {previewPrompt.tags.length > 0 && (
-                  <div>
-                    <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">标签</h4>
-                    <div className="flex flex-wrap gap-2">
-                      {previewPrompt.tags.map((tag, index) => (
-                        <span
-                          key={index}
-                          className="px-2 py-1 text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded-full"
-                        >
-                          {tag}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* 提示词内容 */}
-                <div>
-                  <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">提示词内容</h4>
-                  <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
-                    <pre className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap font-mono leading-relaxed">
-                      {previewPrompt.prompt}
-                    </pre>
-                  </div>
-                  <div className="flex items-center justify-between mt-2">
-                    <span className="text-xs text-gray-500 dark:text-gray-400">
-                      {previewPrompt.isSystem ? '系统预设，不可修改' : '用户自定义，可编辑'}
-                    </span>
-                    <span className="text-xs text-gray-500 dark:text-gray-400">
-                      {previewPrompt.prompt.length} 字符
-                    </span>
-                  </div>
-                </div>
-
-                {/* 时间信息 */}
-                {(previewPrompt.createdAt || previewPrompt.updatedAt) && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs text-gray-500 dark:text-gray-400">
-                    {previewPrompt.createdAt && (
-                      <div>
-                        <span className="font-medium">创建时间：</span>
-                        {new Date(previewPrompt.createdAt).toLocaleString()}
-                      </div>
-                    )}
-                    {previewPrompt.updatedAt && (
-                      <div>
-                        <span className="font-medium">更新时间：</span>
-                        {new Date(previewPrompt.updatedAt).toLocaleString()}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* 自定义滑块样式 */}
       <style jsx>{`
