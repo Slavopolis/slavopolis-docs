@@ -82,6 +82,9 @@ export function ChatInput({
       document.addEventListener('mousedown', handleClickOutside);
       return () => document.removeEventListener('mousedown', handleClickOutside);
     }
+    
+    // 当条件不满足时也需要返回清理函数
+    return () => {};
   }, [showQuickSettings, showPromptSelector]);
 
   // 监听消息变化，检测斜杠命令
@@ -113,6 +116,9 @@ export function ChatInput({
       
       return () => clearTimeout(timer);
     }
+    
+    // 当条件不满足时也需要返回清理函数
+    return () => {};
   }, [promptSelectorIndex, showPromptSelector, filteredPrompts.length]);
 
   // 键盘导航

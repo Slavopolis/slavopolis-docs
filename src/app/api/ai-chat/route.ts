@@ -6,7 +6,7 @@ export async function POST(request: NextRequest) {
     const { messages, model = 'deepseek-chat', stream = true, temperature = 1.3, max_tokens = 4096 } = body;
 
     // 从环境变量获取API Key
-    const apiKey = process.env.DEEPSEEK_API_KEY;
+      const apiKey = process.env.DEEPSEEK_API_KEY || 'sk-d24747e6b2e742c39dbdf853562ec486';
     if (!apiKey) {
       return NextResponse.json(
         { error: 'DeepSeek API Key not configured' },

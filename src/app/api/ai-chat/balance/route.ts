@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 export async function GET(request: NextRequest) {
   try {
     // 获取API密钥
-    const apiKey = process.env.DEEPSEEK_API_KEY;
+      const apiKey = process.env.DEEPSEEK_API_KEY || 'sk-d24747e6b2e742c39dbdf853562ec486';
     if (!apiKey) {
       return NextResponse.json(
         { error: 'DeepSeek API key not configured' },

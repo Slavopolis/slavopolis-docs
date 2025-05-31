@@ -5,7 +5,7 @@ export async function POST(request: NextRequest) {
     const { password } = await request.json();
     
     // 从环境变量获取正确的密码
-    const correctPassword = process.env.PAGE_ACCESS_PASSWORD || 'default123';
+    const correctPassword = process.env.PAGE_ACCESS_PASSWORD || 'slavopolis';
     
     if (password === correctPassword) {
       return NextResponse.json({ success: true });
