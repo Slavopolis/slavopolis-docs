@@ -286,8 +286,8 @@ export function WysiwygMarkdownEditor({
       <div className={cn(
         "rounded-xl border transition-all duration-200",
         "bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700",
-        "shadow-sm hover:shadow-md",
-        isFocused && "shadow-lg border-gray-300 dark:border-gray-600",
+        "shadow-sm",
+        isFocused && "border-gray-300 dark:border-gray-600",
         disabled && "opacity-50 cursor-not-allowed"
       )}>
         
@@ -386,7 +386,8 @@ export function WysiwygMarkdownEditor({
                   border: 'none !important',
                   lineHeight: '1.5',
                   padding: '0',
-                  margin: '0'
+                  margin: '0',
+                  backgroundColor: 'transparent'
                 }}
               />
             </div>

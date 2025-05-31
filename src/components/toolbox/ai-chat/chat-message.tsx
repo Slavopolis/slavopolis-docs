@@ -61,7 +61,7 @@ export function ChatMessageBubble({
     )}>
       {/* AI头像 */}
       {isAssistant && (
-        <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 flex items-center justify-center shadow-sm">
+        <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 flex items-center justify-center shadow-sm">
           <Icon 
             name="icon-deepseek" 
             className="w-6 h-6 text-blue-600 dark:text-blue-400" 

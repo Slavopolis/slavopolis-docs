@@ -318,8 +318,8 @@ export function ChatInput({
         <div className={cn(
           "relative rounded-2xl border transition-all duration-200",
           "bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700",
-          "shadow-lg hover:shadow-xl",
-          isFocused && "shadow-xl",
+          "shadow-md",
+          isFocused && "shadow-md",
           selectedPrompt && "border-blue-300 dark:border-blue-600 ring-2 ring-blue-200 dark:ring-blue-700"
         )}>
           

@@ -26,6 +26,7 @@ interface ChatSessionsProps {
   onSessionSelect: (sessionId: string) => void;
   onNewSession: () => void;
   onDeleteSession: (sessionId: string) => void;
+  onClearAllSessions?: () => void;
   onExportSession?: (session: ChatSession) => void;
   onSettingsClick?: () => void;
   onSidebarToggle?: () => void;
@@ -38,6 +39,7 @@ export function ChatSessions({
   onSessionSelect,
   onNewSession,
   onDeleteSession,
+  onClearAllSessions,
   onExportSession,
   onSettingsClick,
   onSidebarToggle,
@@ -46,6 +48,7 @@ export function ChatSessions({
   const [searchQuery, setSearchQuery] = useState('');
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
 
   // 过滤会话
   const filteredSessions = sessions.filter(session =>
@@ -123,6 +126,16 @@ export function ChatSessions({
     setActiveMenu(null);
   };
 
+  const handleClearAll = () => {
+    setShowClearConfirm(true);
+    setShowUserMenu(false);
+  };
+
+  const confirmClearAll = () => {
+    onClearAllSessions?.();
+    setShowClearConfirm(false);
+  };
+
   return (
     <div className={cn("flex flex-col h-full bg-white dark:bg-gray-800", className)}>
       {/* 头部 */}
@@ -150,17 +163,8 @@ export function ChatSessions({
           </h2>
         </div>
 
-        <button
-          onClick={onNewSession}
-          className="w-full flex items-center justify-center gap-2 px-3 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-          title="新建对话"
-        >
-          <Plus className="w-4 h-4" />
-          <span>新对话</span>
-        </button>
-
         {/* 搜索框 */}
-        <div className="relative mt-4">
+        <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
           <input
             type="text"
@@ -276,6 +280,18 @@ export function ChatSessions({
         )}
       </div>
 
+      {/* 新对话按钮区域 */}
+      <div className="p-4 border-t border-gray-200 dark:border-gray-700">
+        <button
+          onClick={onNewSession}
+          className="w-full flex items-center justify-center gap-3 px-4 py-3 text-sm font-medium bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-xl transition-all duration-200 shadow-sm hover:shadow-md transform hover:scale-[1.02] active:scale-[0.98]"
+          title="开始新的对话"
+        >
+          <Plus className="w-4 h-4" />
+          <span>新对话</span>
+        </button>
+      </div>
+
       {/* 个人信息卡片 */}
       <div className="p-4 border-t border-gray-200 dark:border-gray-700">
         <div className="relative">
@@ -346,12 +362,64 @@ export function ChatSessions({
                       <span>导出对话</span>
                     </button>
                   )}
+                  {onClearAllSessions && sessions.length > 0 && (
+                    <button
+                      onClick={handleClearAll}
+                      className="w-full flex items-center gap-3 px-3 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      <span>清空对话</span>
+                    </button>
+                  )}
                 </div>
               </div>
             </>
           )}
         </div>
       </div>
+
+      {/* 清空对话确认对话框 */}
+      {showClearConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="w-full max-w-md mx-4 bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700">
+            <div className="p-6">
+              <div className="flex items-start gap-4 mb-6">
+                <div className="w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center flex-shrink-0">
+                  <Trash2 className="w-6 h-6 text-red-600 dark:text-red-400" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                    清空所有对话
+                  </h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    确定要清空所有对话记录吗？此操作将永久删除您的所有聊天历史记录，并且无法撤销。
+                  </p>
+                  <div className="mt-3 p-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800">
+                    <p className="text-xs text-amber-700 dark:text-amber-300">
+                      <strong>注意：</strong>包括 {sessions.length} 个对话会话将被永久删除
+                    </p>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowClearConfirm(false)}
+                  className="flex-1 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors"
+                >
+                  取消
+                </button>
+                <button
+                  onClick={confirmClearAll}
+                  className="flex-1 px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors"
+                >
+                  确认清空
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 } 

@@ -49,16 +49,13 @@ export function PageProtection({
     setError('');
 
     try {
-      // 模拟API调用验证密码
-      const response = await fetch('/api/verify-password', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ password: password.trim() }),
-      });
-
-      if (response.ok) {
+      // 模拟处理延迟
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // 从环境变量获取正确的密码
+      const correctPassword = process.env.NEXT_PUBLIC_PAGE_ACCESS_PASSWORD || 'slavopolis';
+      
+      if (password.trim() === correctPassword) {
         // 密码正确，解锁页面
         onUnlock();
         onClose();
@@ -77,7 +74,7 @@ export function PageProtection({
         }
       }
     } catch (err) {
-      setError('验证失败，请检查网络连接');
+      setError('验证失败，请稍后再试');
     } finally {
       setIsLoading(false);
     }

@@ -114,6 +114,30 @@ export function AiChatContainer() {
     }
   }, [sessions, currentSessionId]);
 
+  // 清空所有会话
+  const clearAllSessions = useCallback(() => {
+    setSessions([]);
+    setCurrentSessionId(null);
+    
+    // 清除localStorage中的所有会话数据
+    try {
+      localStorage.removeItem('ai-chat-sessions');
+      localStorage.removeItem('ai-chat-current-session');
+    } catch (error) {
+      console.error('Failed to clear sessions from localStorage:', error);
+    }
+    
+    // 停止当前流式生成
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      setIsStreaming(false);
+      setStreamingContent('');
+      setStreamingReasoning('');
+    }
+    
+    setError(null);
+  }, []);
+
   // 导出会话
   const exportSession = useCallback((session: ChatSession) => {
     const markdown = exportMessagesToMarkdown(session.messages);
@@ -352,6 +376,7 @@ export function AiChatContainer() {
             onExportSession={exportSession}
             onSettingsClick={handleSettingsClick}
             onSidebarToggle={handleSidebarToggle}
+            onClearAllSessions={clearAllSessions}
           />
         </div>
       )}
@@ -424,7 +449,7 @@ export function AiChatContainer() {
                   </div>
                   
                   {/* 示例问题 */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-3xl animate-fadeIn animation-delay-300">
+                  {/* <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-3xl animate-fadeIn animation-delay-300">
                     {[
                       "如何使用Spring Boot实现分布式事务管理？",
                       "设计一个高并发的Java微服务架构",
@@ -444,7 +469,7 @@ export function AiChatContainer() {
                         </span>
                       </button>
                     ))}
-                  </div>
+                  </div> */}
                 </div>
               </div>
             ) : (
