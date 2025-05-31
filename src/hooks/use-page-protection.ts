@@ -41,8 +41,19 @@ export function usePageProtection() {
   const unlockApp = useCallback(() => {
     if (currentApp) {
       setUnlockedApps(prev => new Set([...prev, currentApp.id]));
-      // 解锁后跳转到目标页面
-      window.location.href = currentApp.href;
+      
+      // 获取应用配置以确定跳转方式
+      const appConfig = siteConfig.toolbox.apps.find(app => app.id === currentApp.id);
+      const targetWindow = appConfig?.target || '_self';
+      
+      // 根据target配置进行跳转
+      if (targetWindow === '_blank') {
+        // 新标签页打开
+        window.open(currentApp.href, '_blank', 'noopener,noreferrer');
+      } else {
+        // 当前标签页打开
+        window.location.href = currentApp.href;
+      }
     }
   }, [currentApp]);
 

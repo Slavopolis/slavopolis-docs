@@ -87,6 +87,7 @@ export const siteConfig = {
         category: "AI工具",
         featured: true,
         protected: true, // 页面保护开关
+        target: "_blank", // 新标签页打开
       },
       {
         id: "site-navigation",
@@ -98,6 +99,7 @@ export const siteConfig = {
         category: "实用工具",
         featured: true,
         protected: false, // 页面保护开关 - 示例：此页面需要密码访问
+        target: "_self", // 当前标签页打开
       },
       // 时间轴
       {
@@ -110,6 +112,7 @@ export const siteConfig = {
         category: "实用工具",
         featured: true,
         protected: false, // 页面保护开关 - 示例：此页面需要密码访问
+        target: "_self", // 当前标签页打开
       },
       // LRC歌词生成器
       {
@@ -122,6 +125,7 @@ export const siteConfig = {
         category: "音频工具",
         featured: true,
         protected: false, // 页面保护开关
+        target: "_self", // 当前标签页打开
       },
       // 精选图集
     //   {
@@ -134,6 +138,7 @@ export const siteConfig = {
     //     category: "精选图集",
     //     featured: true,
     //     protected: false, // 页面保护开关
+    //     target: "_self", // 当前标签页打开
     //   },
       // 后续可以添加更多应用
       {
@@ -146,6 +151,7 @@ export const siteConfig = {
         category: "开发工具",
         featured: true,
         protected: false,
+        target: "_self", // 当前标签页打开
       }
       // {
       //   id: "other-tool",
@@ -157,6 +163,7 @@ export const siteConfig = {
       //   category: "实用工具",
       //   featured: false,
       //   protected: false,
+      //   target: "_self", // 当前标签页打开
       // }
     ]
   },
@@ -188,5 +195,26 @@ export const siteConfig = {
     message: "本站内容采用 CC BY-SA 4.0 协议，代码采用 MIT 协议",
   },
 } as const;
+
+// TypeScript 类型定义
+export interface ToolboxApp {
+  id: string;
+  name: string;
+  description: string;
+  icon?: string;
+  fallbackIcon: string;
+  href: string;
+  category: string;
+  featured: boolean;
+  protected: boolean;
+  target: '_self' | '_blank'; // 跳转方式配置
+}
+
+export interface ToolboxConfig {
+  enabled: boolean;
+  title: string;
+  description: string;
+  apps: ToolboxApp[];
+}
 
 export type SiteConfig = typeof siteConfig; 

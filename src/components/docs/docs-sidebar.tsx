@@ -32,7 +32,7 @@ import {
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { authorConfig } from '../../../config/author.config';
-import { siteConfig } from '../../../config/site.config';
+import { siteConfig, type ToolboxApp } from '../../../config/site.config';
 import { PageProtection } from '../auth/PageProtection';
 import { Icon } from '../iconfont-loader';
 import { GlobalSearchDialog } from '../search/global-search-dialog';
@@ -49,7 +49,7 @@ interface DocsSidebarItemProps {
 }
 
 interface ToolboxAppProps {
-  app: any;
+  app: ToolboxApp;
   isCollapsed: boolean;
   onClick: () => void;
 }
@@ -85,9 +85,14 @@ function ToolboxApp({ app, isCollapsed, onClick }: ToolboxAppProps) {
         {!isCollapsed && (
           <div className="flex-1 min-w-0">
             <div className="flex items-center justify-between">
-              <h4 className="font-medium text-sm text-foreground group-hover:text-primary transition-colors">
-                {app.name}
-              </h4>
+              <div className="flex items-center gap-2">
+                <h4 className="font-medium text-sm text-foreground group-hover:text-primary transition-colors">
+                  {app.name}
+                </h4>
+                {app.target === '_blank' && (
+                  <ExternalLink className="h-3 w-3 text-muted-foreground group-hover:text-primary transition-colors" />
+                )}
+              </div>
               {app.protected && (
                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-amber-500">
                   <rect width="18" height="11" x="3" y="11" rx="2" ry="2"></rect>
@@ -189,7 +194,7 @@ export function DocsSidebar({ items, className }: DocsSidebarProps) {
     setIsAuthorExpanded(!isAuthorExpanded);
   };
 
-  const handleToolboxAppClick = (app: any) => {
+  const handleToolboxAppClick = (app: ToolboxApp) => {
     setIsMobileOpen(false);
     
     const protectedApp = {
@@ -201,8 +206,16 @@ export function DocsSidebar({ items, className }: DocsSidebarProps) {
 
     // 尝试访问应用
     if (tryAccessApp(protectedApp)) {
-      // 如果不需要保护或已解锁，直接跳转
-      window.location.href = app.href;
+      // 如果不需要保护或已解锁，根据target配置进行跳转
+      const targetWindow = app.target || '_self';
+      
+      if (targetWindow === '_blank') {
+        // 新标签页打开
+        window.open(app.href, '_blank', 'noopener,noreferrer');
+      } else {
+        // 当前标签页打开
+        window.location.href = app.href;
+      }
     }
     // 如果需要保护，tryAccessApp会自动打开保护对话框
   };
