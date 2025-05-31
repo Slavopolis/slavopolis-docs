@@ -1,0 +1,46 @@
+name: Deploy to Aliyun Server
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Build static files
+      run: npm run build
+      
+    - name: Deploy to server
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.HOST }}
+        username: ${{ secrets.USERNAME }}
+        key: ${{ secrets.SSH_KEY }}
+        port: ${{ secrets.PORT }}
+        script: |
+          cd /opt/slavopolis-docs
+          git pull origin main
+          npm ci
+          npm run build
+          sudo cp -r out/* /var/www/html/slavopolis-docs/
+          sudo systemctl reload nginx
+          
+    - name: Notify deployment
+      run: |
+        echo "🎉 Deployment completed successfully!"
+        echo "📱 Website: http://${{ secrets.HOST }}" 
