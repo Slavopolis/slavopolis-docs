@@ -6,7 +6,9 @@ import {
     SYSTEM_PROMPT_TEMPLATES
 } from '@/config/prompt.config';
 import {
+    ApiKeyManager,
     ChatSettings,
+    DEEPSEEK_API_CONFIG,
     DEFAULT_CHAT_SETTINGS,
     MODEL_CONFIGS,
     TEMPERATURE_PRESETS
@@ -23,6 +25,7 @@ import {
     Filter,
     Hash,
     Info,
+    Key,
     MessageSquare,
     RefreshCw,
     RotateCcw,
@@ -106,6 +109,10 @@ export function ChatSettingsPanel({
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
 
+  // API密钥相关状态
+  const [apiKey, setApiKey] = useState<string>('');
+  const [showApiKey, setShowApiKey] = useState(false);
+
   // 提示框管理函数
   const showToast = useCallback((toast: Omit<ToastMessage, 'id'>) => {
     const id = Math.random().toString(36).substr(2, 9);
@@ -161,22 +168,60 @@ export function ChatSettingsPanel({
     setLocalSettings(prev => ({ ...prev, [key]: value }));
   };
 
-  // 获取余额信息
+  // 初始化API密钥
+  useEffect(() => {
+    const savedApiKey = ApiKeyManager.getApiKey();
+    if (savedApiKey) {
+      setApiKey(savedApiKey);
+    }
+  }, []);
+
+  // 保存API密钥
+  const handleSaveApiKey = () => {
+    if (apiKey.trim()) {
+      ApiKeyManager.setApiKey(apiKey.trim());
+      showToast({
+        type: 'success',
+        title: 'API密钥已保存',
+        message: '您现在可以使用AI聊天功能了'
+      });
+    } else {
+      ApiKeyManager.removeApiKey();
+      showToast({
+        type: 'info',
+        title: 'API密钥已清除'
+      });
+    }
+  };
+
+  // 获取余额信息 - 直接调用DeepSeek API
   const fetchBalance = useCallback(async () => {
     setBalanceLoading(true);
     setBalanceError(null);
     
     try {
-      const response = await fetch('/api/ai-chat/balance', {
+      const currentApiKey = apiKey || ApiKeyManager.getApiKey();
+      if (!currentApiKey) {
+        throw new Error('请先配置API密钥');
+      }
+
+      const response = await fetch(`${DEEPSEEK_API_CONFIG.baseURL}${DEEPSEEK_API_CONFIG.balanceEndpoint}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${currentApiKey}`,
         },
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || `HTTP ${response.status}`);
+        let errorMessage = `HTTP ${response.status}`;
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error?.message || errorData.error || errorMessage;
+        } catch {
+          // 如果无法解析错误响应，使用默认错误信息
+        }
+        throw new Error(errorMessage);
       }
 
       const data: BalanceResponse = await response.json();
@@ -187,7 +232,7 @@ export function ChatSettingsPanel({
     } finally {
       setBalanceLoading(false);
     }
-  }, []);
+  }, [apiKey]);
 
   // 当切换到余额Tab时自动获取余额
   useEffect(() => {
@@ -292,151 +337,195 @@ export function ChatSettingsPanel({
             
             {/* 基础设置 Tab */}
             {activeTab === 'basic' && (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="space-y-6">
                 
-                {/* 左列 - 模型设置 */}
-                <div className="space-y-6">
-                  {/* 模型选择 */}
-                  <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-5">
-                    <label className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 mb-4">
-                      <Cpu className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                      AI 模型
-                    </label>
-                    <div className="space-y-3">
-                      {Object.entries(MODEL_CONFIGS).map(([key, config]) => (
-                        <label
-                          key={key}
-                          className={cn(
-                            "flex items-center gap-3 p-4 rounded-lg border cursor-pointer transition-all duration-200",
-                            localSettings.model === key
-                              ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20 ring-2 ring-blue-200 dark:ring-blue-700"
-                              : "border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 hover:border-gray-300 dark:hover:border-gray-600"
-                          )}
+                {/* API密钥配置 */}
+                <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/10 dark:to-indigo-900/10 rounded-xl p-5 border border-blue-200 dark:border-blue-800">
+                  <label className="flex items-center gap-2 text-sm font-medium text-blue-800 dark:text-blue-200 mb-4">
+                    <Key className="w-4 h-4" />
+                    DeepSeek API 密钥
+                  </label>
+                  
+                  <div className="space-y-4">
+                    <div className="flex gap-3">
+                      <div className="flex-1 relative">
+                        <input
+                          type={showApiKey ? "text" : "password"}
+                          value={apiKey}
+                          onChange={(e) => setApiKey(e.target.value)}
+                          placeholder="请输入您的DeepSeek API密钥"
+                          className="w-full px-3 py-2 text-sm border border-blue-200 dark:border-blue-700 rounded-lg bg-white dark:bg-blue-900/20 text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowApiKey(!showApiKey)}
+                          className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
                         >
-                          <input
-                            type="radio"
-                            name="model"
-                            value={key}
-                            checked={localSettings.model === key}
-                            onChange={(e) => updateSetting('model', e.target.value as any)}
-                            className="text-blue-600 focus:ring-blue-500 w-4 h-4"
-                          />
-                          <div className="flex-1">
-                            <div className="font-medium text-gray-900 dark:text-gray-100">
-                              {config.name}
-                            </div>
-                            <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                              {config.description}
-                            </div>
-                          </div>
-                        </label>
-                      ))}
+                          {showApiKey ? '🙈' : '👁️'}
+                        </button>
+                      </div>
+                      <button
+                        onClick={handleSaveApiKey}
+                        className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                      >
+                        保存
+                      </button>
                     </div>
-                  </div>
-
-                  {/* 最大令牌数 */}
-                  <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-5">
-                    <label className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 mb-4">
-                      <Hash className="w-4 h-4 text-green-600 dark:text-green-400" />
-                      最大输出长度
-                    </label>
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-gray-600 dark:text-gray-400">
-                          {localSettings.maxTokens} tokens
-                        </span>
-                        <span className="text-xs px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-full">
-                          约 {Math.round(localSettings.maxTokens * 0.75)} 个中文字
-                        </span>
-                      </div>
-                      <input
-                        type="range"
-                        min="100"
-                        max="8192"
-                        step="100"
-                        value={localSettings.maxTokens}
-                        onChange={(e) => updateSetting('maxTokens', parseInt(e.target.value))}
-                        className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer slider"
-                      />
-                      <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400">
-                        <span>100</span>
-                        <span>4096</span>
-                        <span>8192</span>
-                      </div>
+                    
+                    <div className="text-xs text-blue-600 dark:text-blue-400 space-y-1">
+                      <p>• 获取API密钥：访问 <a href="https://platform.deepseek.com/api_keys" target="_blank" rel="noopener noreferrer" className="underline hover:text-blue-800 dark:hover:text-blue-200">DeepSeek控制台</a></p>
+                      <p>• 密钥将安全存储在本地浏览器中</p>
+                      <p>• ⚠️ 请妥善保管您的API密钥，不要分享给他人</p>
                     </div>
                   </div>
                 </div>
 
-                {/* 右列 - 温度设置 */}
-                <div className="space-y-6">
-                  {/* 温度设置 */}
-                  <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-5">
-                    <label className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 mb-4">
-                      <Thermometer className="w-4 h-4 text-purple-600 dark:text-purple-400" />
-                      创造性温度
-                    </label>
-                    
-                    <div className="space-y-4">
-                      {/* 当前值显示 */}
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-gray-600 dark:text-gray-400">
-                          当前值: {localSettings.temperature}
-                        </span>
-                        <span className="text-xs px-2 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded-full">
-                          {localSettings.temperature <= 0.3 ? '精确' : 
-                           localSettings.temperature <= 1.0 ? '平衡' : 
-                           localSettings.temperature <= 1.5 ? '创意' : '高创意'}
-                        </span>
-                      </div>
-
-                      {/* 预设温度按钮 */}
-                      <div className="grid grid-cols-2 gap-2">
-                        {Object.entries(TEMPERATURE_PRESETS).slice(0, 4).map(([key, preset]) => (
-                          <button
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  
+                  {/* 左列 - 模型设置 */}
+                  <div className="space-y-6">
+                    {/* 模型选择 */}
+                    <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-5">
+                      <label className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 mb-4">
+                        <Cpu className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                        AI 模型
+                      </label>
+                      <div className="space-y-3">
+                        {Object.entries(MODEL_CONFIGS).map(([key, config]) => (
+                          <label
                             key={key}
-                            onClick={() => updateSetting('temperature', preset.value)}
                             className={cn(
-                              "p-3 text-xs rounded-lg border text-center transition-all duration-200",
-                              localSettings.temperature === preset.value
-                                ? "border-purple-500 bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300"
-                                : "border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700"
+                              "flex items-center gap-3 p-4 rounded-lg border cursor-pointer transition-all duration-200",
+                              localSettings.model === key
+                                ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20 ring-2 ring-blue-200 dark:ring-blue-700"
+                                : "border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 hover:border-gray-300 dark:hover:border-gray-600"
                             )}
                           >
-                            <div className="font-medium">{preset.label}</div>
-                            <div className="text-gray-500 dark:text-gray-400 mt-1">{preset.value}</div>
-                          </button>
+                            <input
+                              type="radio"
+                              name="model"
+                              value={key}
+                              checked={localSettings.model === key}
+                              onChange={(e) => updateSetting('model', e.target.value as any)}
+                              className="text-blue-600 focus:ring-blue-500 w-4 h-4"
+                            />
+                            <div className="flex-1">
+                              <div className="font-medium text-gray-900 dark:text-gray-100">
+                                {config.name}
+                              </div>
+                              <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                {config.description}
+                              </div>
+                            </div>
+                          </label>
                         ))}
                       </div>
+                    </div>
 
-                      {/* 自定义温度滑块 */}
-                      <input
-                        type="range"
-                        min="0"
-                        max="2"
-                        step="0.1"
-                        value={localSettings.temperature}
-                        onChange={(e) => updateSetting('temperature', parseFloat(e.target.value))}
-                        className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer slider-purple"
-                      />
-                      <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400">
-                        <span>0.0</span>
-                        <span>1.0</span>
-                        <span>2.0</span>
+                    {/* 最大令牌数 */}
+                    <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-5">
+                      <label className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 mb-4">
+                        <Hash className="w-4 h-4 text-green-600 dark:text-green-400" />
+                        最大输出长度
+                      </label>
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-gray-600 dark:text-gray-400">
+                            {localSettings.maxTokens} tokens
+                          </span>
+                          <span className="text-xs px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-full">
+                            约 {Math.round(localSettings.maxTokens * 0.75)} 个中文字
+                          </span>
+                        </div>
+                        <input
+                          type="range"
+                          min="100"
+                          max="8192"
+                          step="100"
+                          value={localSettings.maxTokens}
+                          onChange={(e) => updateSetting('maxTokens', parseInt(e.target.value))}
+                          className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer slider"
+                        />
+                        <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400">
+                          <span>100</span>
+                          <span>4096</span>
+                          <span>8192</span>
+                        </div>
                       </div>
                     </div>
                   </div>
 
-                  {/* 温度说明 */}
-                  <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-4 border border-blue-200 dark:border-blue-800">
-                    <h4 className="text-sm font-medium text-blue-900 dark:text-blue-200 mb-2">
-                      温度设置说明
-                    </h4>
-                    <ul className="text-xs text-blue-700 dark:text-blue-300 space-y-1">
-                      <li>• <strong>0.0-0.3</strong>: 精确模式，适合代码生成、数学计算</li>
-                      <li>• <strong>0.8-1.0</strong>: 平衡模式，适合日常对话、问答</li>
-                      <li>• <strong>1.3-1.5</strong>: 创意模式，适合创作、头脑风暴</li>
-                      <li>• <strong>1.8-2.0</strong>: 高创意模式，适合文学创作</li>
-                    </ul>
+                  {/* 右列 - 温度设置 */}
+                  <div className="space-y-6">
+                    {/* 温度设置 */}
+                    <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-5">
+                      <label className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 mb-4">
+                        <Thermometer className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                        创造性温度
+                      </label>
+                      
+                      <div className="space-y-4">
+                        {/* 当前值显示 */}
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-gray-600 dark:text-gray-400">
+                            当前值: {localSettings.temperature}
+                          </span>
+                          <span className="text-xs px-2 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded-full">
+                            {localSettings.temperature <= 0.3 ? '精确' : 
+                             localSettings.temperature <= 1.0 ? '平衡' : 
+                             localSettings.temperature <= 1.5 ? '创意' : '高创意'}
+                          </span>
+                        </div>
+
+                        {/* 预设温度按钮 */}
+                        <div className="grid grid-cols-2 gap-2">
+                          {Object.entries(TEMPERATURE_PRESETS).slice(0, 4).map(([key, preset]) => (
+                            <button
+                              key={key}
+                              onClick={() => updateSetting('temperature', preset.value)}
+                              className={cn(
+                                "p-3 text-xs rounded-lg border text-center transition-all duration-200",
+                                localSettings.temperature === preset.value
+                                  ? "border-purple-500 bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300"
+                                  : "border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700"
+                              )}
+                            >
+                              <div className="font-medium">{preset.label}</div>
+                              <div className="text-gray-500 dark:text-gray-400 mt-1">{preset.value}</div>
+                            </button>
+                          ))}
+                        </div>
+
+                        {/* 自定义温度滑块 */}
+                        <input
+                          type="range"
+                          min="0"
+                          max="2"
+                          step="0.1"
+                          value={localSettings.temperature}
+                          onChange={(e) => updateSetting('temperature', parseFloat(e.target.value))}
+                          className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer slider-purple"
+                        />
+                        <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400">
+                          <span>0.0</span>
+                          <span>1.0</span>
+                          <span>2.0</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* 温度说明 */}
+                    <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-4 border border-blue-200 dark:border-blue-800">
+                      <h4 className="text-sm font-medium text-blue-900 dark:text-blue-200 mb-2">
+                        温度设置说明
+                      </h4>
+                      <ul className="text-xs text-blue-700 dark:text-blue-300 space-y-1">
+                        <li>• <strong>0.0-0.3</strong>: 精确模式，适合代码生成、数学计算</li>
+                        <li>• <strong>0.8-1.0</strong>: 平衡模式，适合日常对话、问答</li>
+                        <li>• <strong>1.3-1.5</strong>: 创意模式，适合创作、头脑风暴</li>
+                        <li>• <strong>1.8-2.0</strong>: 高创意模式，适合文学创作</li>
+                      </ul>
+                    </div>
                   </div>
                 </div>
               </div>

@@ -30,6 +30,7 @@ export interface ChatSettings {
   temperature: number;
   maxTokens: number;
   systemMessage: string;
+  apiKey?: string; // 添加API密钥字段
 }
 
 export const DEFAULT_CHAT_SETTINGS: ChatSettings = {
@@ -61,6 +62,42 @@ export const TEMPERATURE_PRESETS = {
   translation: { value: 0.3, label: '翻译', description: '准确的翻译质量' },
   creative: { value: 1.5, label: '创意写作', description: '富有创意的输出' },
 };
+
+// DeepSeek API配置
+export const DEEPSEEK_API_CONFIG = {
+  baseURL: 'https://api.deepseek.com',
+  chatEndpoint: '/chat/completions',
+  balanceEndpoint: '/user/balance',
+};
+
+// API密钥管理
+export class ApiKeyManager {
+  private static readonly API_KEY_STORAGE_KEY = 'deepseek-api-key';
+
+  static getApiKey(): string | null {
+    try {
+      return localStorage.getItem(this.API_KEY_STORAGE_KEY);
+    } catch {
+      return null;
+    }
+  }
+
+  static setApiKey(apiKey: string): void {
+    try {
+      localStorage.setItem(this.API_KEY_STORAGE_KEY, apiKey);
+    } catch (error) {
+      console.error('Failed to save API key:', error);
+    }
+  }
+
+  static removeApiKey(): void {
+    try {
+      localStorage.removeItem(this.API_KEY_STORAGE_KEY);
+    } catch (error) {
+      console.error('Failed to remove API key:', error);
+    }
+  }
+}
 
 // 生成唯一ID
 export function generateId(): string {
@@ -145,6 +182,12 @@ export async function streamChat(
   signal?: AbortSignal
 ): Promise<void> {
   try {
+    // 获取API密钥
+    const apiKey = settings.apiKey || ApiKeyManager.getApiKey();
+    if (!apiKey) {
+      throw new Error('API密钥未配置，请在设置中添加DeepSeek API密钥');
+    }
+
     // 构建API消息格式
     const apiMessages = messages.map(msg => ({
       role: msg.role,
@@ -159,11 +202,12 @@ export async function streamChat(
       });
     }
 
-    // 构建请求选项，处理signal类型
+    // 构建请求选项，直接请求DeepSeek API
     const requestOptions: RequestInit = {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
         messages: apiMessages,
@@ -179,11 +223,18 @@ export async function streamChat(
       requestOptions.signal = signal;
     }
 
-    const response = await fetch('/api/ai-chat', requestOptions);
+    // 直接请求DeepSeek API
+    const response = await fetch(`${DEEPSEEK_API_CONFIG.baseURL}${DEEPSEEK_API_CONFIG.chatEndpoint}`, requestOptions);
 
     if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || `HTTP ${response.status}`);
+      let errorMessage = `HTTP ${response.status}`;
+      try {
+        const errorData = await response.json();
+        errorMessage = errorData.error?.message || errorData.error || errorMessage;
+      } catch {
+        // 如果无法解析错误响应，使用默认错误信息
+      }
+      throw new Error(errorMessage);
     }
 
     const reader = response.body?.getReader();
