@@ -81,10 +81,23 @@ function parseHeadings(content: string): TocItem[] {
 export function TableOfContents({ content, className }: TableOfContentsProps) {
   const [headings, setHeadings] = useState<TocItem[]>([]);
   const [activeId, setActiveId] = useState<string>('');
+  const [maxTocHeight, setMaxTocHeight] = useState<string>('60vh');
 
   useEffect(() => {
     const tocItems = parseHeadings(content);
     setHeadings(tocItems);
+
+    // 计算目录最大高度为视窗高度的80%
+    const calculateMaxHeight = () => {
+      setMaxTocHeight(`${window.innerHeight * 0.6}px`);
+    };
+
+    calculateMaxHeight();
+    window.addEventListener('resize', calculateMaxHeight);
+
+    return () => {
+      window.removeEventListener('resize', calculateMaxHeight);
+    };
   }, [content]);
 
   useEffect(() => {
@@ -130,8 +143,13 @@ export function TableOfContents({ content, className }: TableOfContentsProps) {
           </h3>
         </div>
 
-        {/* 目录列表 - 去除连线效果 */}
-        <nav className="space-y-1">
+        {/* 目录列表 - 添加最大高度和滚动条 */}
+        <nav 
+          className="space-y-1 overflow-y-auto pr-1 custom-scrollbar"
+          style={{ 
+            maxHeight: maxTocHeight
+          }}
+        >
           {headings.map((heading) => {
             return (
               <div key={heading.id}>
@@ -168,6 +186,42 @@ export function TableOfContents({ content, className }: TableOfContentsProps) {
             );
           })}
         </nav>
+
+        {/* 自定义滚动条样式 */}
+        <style jsx global>{`
+          /* 完全隐藏默认滚动条 */
+          .custom-scrollbar::-webkit-scrollbar {
+            width: 3px;
+          }
+          
+          .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+            width: 0;
+            display: none;
+          }
+          
+          .custom-scrollbar::-webkit-scrollbar-thumb {
+            background-color: rgba(127, 127, 127, 0.3);
+            border-radius: 10px;
+            border: none;
+            min-height: 40px;
+          }
+          
+          .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background-color: rgba(127, 127, 127, 0.5);
+          }
+          
+          /* Firefox 滚动条样式 */
+          .custom-scrollbar {
+            scrollbar-width: thin;
+            scrollbar-color: rgba(127, 127, 127, 0.3) transparent;
+          }
+          
+          /* 当不滚动时隐藏滚动条，滚动时显示 */
+          .custom-scrollbar:hover::-webkit-scrollbar-thumb {
+            background-color: rgba(127, 127, 127, 0.5);
+          }
+        `}</style>
 
         {/* 回到顶部按钮 */}
         <div className="mt-6 pt-4 border-t border-border/30">
