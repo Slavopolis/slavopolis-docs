@@ -33,11 +33,62 @@ export function AiChatContainer() {
   const [showSidebar, setShowSidebar] = useState(true);
   const [showSettings, setShowSettings] = useState(false);
   
+  // 智能滚动相关状态
+  const [isUserScrolling, setIsUserScrolling] = useState(false);
+  const [showScrollToBottom, setShowScrollToBottom] = useState(false);
+  
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // 获取当前会话
   const currentSession = sessions.find(s => s.id === currentSessionId);
+
+  // 检查是否在底部附近（距底部50px以内）
+  const isNearBottom = useCallback(() => {
+    const container = messagesContainerRef.current;
+    if (!container) return false;
+    
+    const { scrollTop, scrollHeight, clientHeight } = container;
+    return scrollHeight - scrollTop - clientHeight < 50;
+  }, []);
+
+  // 滚动到底部
+  const scrollToBottom = useCallback((smooth: boolean = true) => {
+    messagesEndRef.current?.scrollIntoView({ 
+      behavior: smooth ? 'smooth' : 'auto',
+      block: 'end'
+    });
+  }, []);
+
+  // 处理滚动事件
+  const handleScroll = useCallback(() => {
+    if (!messagesContainerRef.current) return;
+    
+    const nearBottom = isNearBottom();
+    setShowScrollToBottom(!nearBottom);
+    
+    // 如果用户滚动到底部附近，认为用户不再主动滚动
+    if (nearBottom) {
+      setIsUserScrolling(false);
+    } else {
+      // 用户主动滚动了
+      setIsUserScrolling(true);
+    }
+
+    // 清除之前的定时器
+    if (scrollTimeoutRef.current) {
+      clearTimeout(scrollTimeoutRef.current);
+    }
+
+    // 500ms后如果没有新的滚动事件，认为滚动结束
+    scrollTimeoutRef.current = setTimeout(() => {
+      if (isNearBottom()) {
+        setIsUserScrolling(false);
+      }
+    }, 500);
+  }, [isNearBottom]);
 
   // 初始化数据
   useEffect(() => {
@@ -52,14 +103,38 @@ export function AiChatContainer() {
     }
   }, []);
 
-  // 自动滚动到底部
-  const scrollToBottom = useCallback(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, []);
-
+  // 智能自动滚动：只有在用户没有主动滚动且在底部附近时才自动滚动
   useEffect(() => {
-    scrollToBottom();
-  }, [currentSession?.messages, streamingContent, scrollToBottom]);
+    // 如果用户正在查看历史消息，不自动滚动
+    if (isUserScrolling) return;
+    
+    // 如果不在底部附近，不自动滚动
+    if (!isNearBottom()) return;
+
+    // 延迟一点点执行滚动，确保DOM已更新
+    const timer = setTimeout(() => {
+      scrollToBottom();
+    }, 10);
+
+    return () => clearTimeout(timer);
+  }, [currentSession?.messages, streamingContent, streamingReasoning, isUserScrolling, isNearBottom, scrollToBottom]);
+
+  // 当切换会话时，滚动到底部并重置滚动状态
+  useEffect(() => {
+    setIsUserScrolling(false);
+    setShowScrollToBottom(false);
+    // 切换会话时立即滚动到底部，不需要动画
+    setTimeout(() => scrollToBottom(false), 100);
+  }, [currentSessionId, scrollToBottom]);
+
+  // 清理定时器
+  useEffect(() => {
+    return () => {
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // 创建新会话
   const createNewSession = useCallback(() => {
@@ -92,6 +167,10 @@ export function AiChatContainer() {
       setStreamingContent('');
       setStreamingReasoning('');
     }
+
+    // 重置滚动状态
+    setIsUserScrolling(false);
+    setShowScrollToBottom(false);
   }, []);
 
   // 删除会话
@@ -172,6 +251,10 @@ export function AiChatContainer() {
   const sendMessage = useCallback(async (content: string, useReasoning: boolean = false, customSystemPrompt?: string) => {
     if (!content.trim() || isStreaming) return;
 
+    // 用户发送新消息时，重置滚动状态，确保可以看到新消息
+    setIsUserScrolling(false);
+    setShowScrollToBottom(false);
+
     let session = currentSession;
     
     // 如果没有当前会话，创建新会话
@@ -223,6 +306,9 @@ export function AiChatContainer() {
     setStreamingReasoning('');
     setError(null);
 
+    // 确保滚动到底部显示新消息
+    setTimeout(() => scrollToBottom(), 100);
+
     const controller = new AbortController();
     abortControllerRef.current = controller;
 
@@ -265,7 +351,7 @@ export function AiChatContainer() {
       setStreamingReasoning('');
       abortControllerRef.current = null;
     }
-  }, [currentSession, settings, isStreaming, updateSession]);
+  }, [currentSession, settings, isStreaming, updateSession, scrollToBottom]);
 
   // 停止生成
   const stopGeneration = useCallback(() => {
@@ -426,7 +512,11 @@ export function AiChatContainer() {
         )}
 
         {/* 消息列表 */}
-        <div className="flex-1 overflow-y-auto scrollbar-thin">
+        <div 
+          ref={messagesContainerRef}
+          className="flex-1 overflow-y-auto scrollbar-thin relative"
+          onScroll={handleScroll}
+        >
           <div className="max-w-7xl mx-auto px-2 py-4 space-y-6 w-full">
             {displayMessages.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-[70vh] text-gray-500 dark:text-gray-400 py-12 animate-fadeIn">
@@ -501,6 +591,41 @@ export function AiChatContainer() {
             )}
             <div ref={messagesEndRef} />
           </div>
+
+          {/* 悬浮的返回底部按钮 */}
+          {showScrollToBottom && (
+            <div className="absolute bottom-6 right-6 z-10">
+              <button
+                onClick={() => {
+                  setIsUserScrolling(false);
+                  scrollToBottom();
+                }}
+                className="group flex items-center gap-2 px-4 py-3 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105 backdrop-blur-sm bg-white/95 dark:bg-gray-800/95 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:border-blue-300 dark:hover:border-blue-600"
+                title="返回底部查看最新消息"
+              >
+                <svg
+                  className="w-4 h-4 transition-transform duration-200 group-hover:translate-y-0.5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M19 14l-7 7m0 0l-7-7m7 7V3"
+                  />
+                </svg>
+                <span className="text-sm font-medium">返回底部</span>
+                {isStreaming && (
+                  <div className="flex items-center gap-1">
+                    <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+                    <span className="text-xs text-blue-600 dark:text-blue-400 font-medium">新消息</span>
+                  </div>
+                )}
+              </button>
+            </div>
+          )}
         </div>
 
         {/* 输入区域 */}
