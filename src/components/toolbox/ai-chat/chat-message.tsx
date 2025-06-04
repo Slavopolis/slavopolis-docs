@@ -93,22 +93,52 @@ export function ChatMessageBubble({
                 {displayContent}
               </div>
             ) : (
-              <MarkdownRenderer 
-                content={displayContent} 
-                className="w-full"
-              />
+              <>
+                {/* AI响应内容 */}
+                {displayContent ? (
+                  <MarkdownRenderer 
+                    content={displayContent} 
+                    className="w-full"
+                  />
+                ) : isStreaming ? (
+                  // 当正在流式生成但还没有内容时，显示占位符
+                  <div className="flex items-center gap-3 py-2 text-gray-500 dark:text-gray-400">
+                    <div className="flex space-x-1">
+                      <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
+                      <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
+                      <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"></div>
+                    </div>
+                    <span className="text-sm">
+                      {message.model === 'deepseek-reasoner' ? (
+                        <>
+                          <Brain className="w-4 h-4 inline mr-1 text-purple-500" />
+                          DeepSeek 正在深度思考中...
+                        </>
+                      ) : (
+                        'DeepSeek 正在思考中...'
+                      )}
+                    </span>
+                  </div>
+                ) : (
+                  // 非流式状态下的空内容（通常不会出现）
+                  <MarkdownRenderer 
+                    content={displayContent} 
+                    className="w-full"
+                  />
+                )}
+              </>
             )}
           </div>
 
-          {/* 流式输入指示器 */}
-          {isStreaming && isAssistant && (
+          {/* 流式输入指示器 - 仅在有内容时显示 */}
+          {isStreaming && isAssistant && displayContent && (
             <div className="mt-2 flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
               <div className="flex space-x-1">
                 <div className="w-1 h-1 bg-blue-500 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
                 <div className="w-1 h-1 bg-blue-500 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
                 <div className="w-1 h-1 bg-blue-500 rounded-full animate-bounce"></div>
               </div>
-              <span>AI正在思考中...</span>
+              <span>正在生成中...</span>
             </div>
           )}
 
@@ -160,6 +190,9 @@ export function ChatMessageBubble({
               <Brain className="w-3 h-3" />
               <span>{showReasoning ? '隐藏' : '查看'}推理过程</span>
               <span className="text-gray-400">({displayReasoning.length} 字符)</span>
+              {isStreaming && displayReasoning && (
+                <span className="text-purple-500 animate-pulse">• 思考中</span>
+              )}
             </button>
 
             {showReasoning && (
@@ -167,6 +200,16 @@ export function ChatMessageBubble({
                 <div className="flex items-center gap-2 mb-2 text-sm font-medium text-amber-700 dark:text-amber-400">
                   <Brain className="w-4 h-4" />
                   <span>AI推理过程</span>
+                  {isStreaming && displayReasoning && (
+                    <div className="flex items-center gap-1 ml-auto">
+                      <div className="flex space-x-1">
+                        <div className="w-1 h-1 bg-purple-500 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
+                        <div className="w-1 h-1 bg-purple-500 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
+                        <div className="w-1 h-1 bg-purple-500 rounded-full animate-bounce"></div>
+                      </div>
+                      <span className="text-xs text-purple-600 dark:text-purple-400">实时思考</span>
+                    </div>
+                  )}
                 </div>
                 <div className="w-full">
                   <MarkdownRenderer 
@@ -176,6 +219,26 @@ export function ChatMessageBubble({
                 </div>
               </div>
             )}
+          </div>
+        )}
+
+        {/* 当推理模式且正在思考但还没有显示推理内容时的特殊提示 */}
+        {isStreaming && message.model === 'deepseek-reasoner' && !hasReasoning && !displayContent && (
+          <div className="w-full">
+            <div className="mt-2 rounded-xl border border-purple-200 dark:border-purple-800 bg-purple-50/50 dark:bg-purple-900/10 p-4">
+              <div className="flex items-center gap-2 text-sm font-medium text-purple-700 dark:text-purple-400">
+                <Brain className="w-4 h-4 animate-pulse" />
+                <span>启动深度推理模式...</span>
+                <div className="flex space-x-1 ml-auto">
+                  <div className="w-1.5 h-1.5 bg-purple-500 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
+                  <div className="w-1.5 h-1.5 bg-purple-500 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
+                  <div className="w-1.5 h-1.5 bg-purple-500 rounded-full animate-bounce"></div>
+                </div>
+              </div>
+              <p className="text-xs text-purple-600 dark:text-purple-400 mt-1">
+                AI正在进行深层次的逻辑分析和推理，请稍候...
+              </p>
+            </div>
           </div>
         )}
 

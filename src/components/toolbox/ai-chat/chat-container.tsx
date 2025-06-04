@@ -217,7 +217,7 @@ export function AiChatContainer() {
       settings: chatSettings,
     });
 
-    // 开始流式生成
+    // 立即开始流式生成状态，显示AI正在思考
     setIsStreaming(true);
     setStreamingContent('');
     setStreamingReasoning('');
@@ -350,16 +350,21 @@ export function AiChatContainer() {
 
   const displayMessages = currentSession?.messages || [];
   
-  // 添加流式消息用于显示
+  // 修改流式消息逻辑：只要正在流式生成就显示AI响应框
   let streamingMessage: ChatMessage | null = null;
-  if (isStreaming && (streamingContent || streamingReasoning)) {
+  if (isStreaming) {
     streamingMessage = {
       id: 'streaming',
       role: 'assistant',
-      content: '',
+      content: streamingContent || '', // 即使没有内容也显示消息框
       timestamp: Date.now(),
       model: settings.model,
     };
+    
+    // 如果有推理内容，也添加到消息中
+    if (streamingReasoning) {
+      streamingMessage.reasoning_content = streamingReasoning;
+    }
   }
 
   return (
