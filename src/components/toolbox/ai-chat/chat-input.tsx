@@ -24,7 +24,7 @@ export function ChatInput({
   onStop,
   disabled = false,
   isStreaming = false,
-  placeholder = "输入消息... (Shift+Enter 换行，/ 选择提示词)",
+  placeholder = "输入消息... (Shift+Enter 换行，/ 选择提示词，点击发送按钮发送消息)",
   maxLength = 8000,
   currentSettings,
   onSettingsChange,
@@ -42,6 +42,9 @@ export function ChatInput({
   const [searchQuery, setSearchQuery] = useState('');
   const promptSelectorRef = useRef<HTMLDivElement>(null);
   const promptItemsRef = useRef<HTMLButtonElement[]>([]);
+
+  // 添加 IME 组合状态跟踪
+  const [isComposing, setIsComposing] = useState(false);
 
   const currentModel = currentSettings?.model || 'deepseek-chat';
   const currentTemperature = currentSettings?.temperature || 1.3;
@@ -123,6 +126,11 @@ export function ChatInput({
 
   // 键盘导航
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    // 如果正在输入法组合过程中，不处理任何快捷键
+    if (isComposing) {
+      return;
+    }
+
     if (showPromptSelector && filteredPrompts.length > 0) {
       if (e.key === 'ArrowDown') {
         e.preventDefault();
@@ -144,9 +152,19 @@ export function ChatInput({
         setMessage('');
       }
     } else if (e.key === 'Enter' && !e.shiftKey) {
+      // 完全禁用回车发送，用户必须使用发送按钮
       e.preventDefault();
-      handleSubmit();
+      // 不调用 handleSubmit()，让用户明确点击发送按钮
     }
+  };
+
+  // 处理输入法组合事件
+  const handleCompositionStart = () => {
+    setIsComposing(true);
+  };
+
+  const handleCompositionEnd = () => {
+    setIsComposing(false);
   };
 
   const handleSubmit = () => {
@@ -492,7 +510,7 @@ export function ChatInput({
                 {characterCount}/{maxLength}
               </span>
               <span>•</span>
-              <span>Shift+Enter 换行{!selectedPrompt && " • / 选择提示词"}</span>
+              <span>Shift+Enter 换行{!selectedPrompt && " • / 选择提示词 • 点击发送按钮发送消息"}</span>
             </div>
           </div>
 
@@ -511,6 +529,8 @@ export function ChatInput({
               onFocus={() => setIsFocused(true)}
               onBlur={() => setIsFocused(false)}
               onKeyDown={handleKeyDown}
+              onCompositionStart={handleCompositionStart}
+              onCompositionEnd={handleCompositionEnd}
               enablePreview={true}
               className="border-0 shadow-none"
             />
@@ -588,7 +608,7 @@ export function ChatInput({
                     ? `发送消息 (${selectedPrompt.name})` 
                     : useReasoning 
                     ? "发送消息 (深度思考模式)" 
-                    : "发送消息 (Enter)"
+                    : "发送消息"
                 }
               >
                 <Send className="w-4 h-4" />

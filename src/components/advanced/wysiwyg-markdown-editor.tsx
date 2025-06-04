@@ -32,6 +32,8 @@ interface MarkdownEditorProps {
   onFocus?: () => void;
   onBlur?: () => void;
   onKeyDown?: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
+  onCompositionStart?: () => void;
+  onCompositionEnd?: () => void;
   enablePreview?: boolean;
 }
 
@@ -56,6 +58,8 @@ export function WysiwygMarkdownEditor({
   onFocus,
   onBlur,
   onKeyDown,
+  onCompositionStart,
+  onCompositionEnd,
   enablePreview = true,
 }: MarkdownEditorProps) {
   const [isFocused, setIsFocused] = useState(false);
@@ -368,6 +372,8 @@ export function WysiwygMarkdownEditor({
                 onKeyDown={handleKeyDown}
                 onFocus={handleFocus}
                 onBlur={handleBlur}
+                onCompositionStart={onCompositionStart}
+                onCompositionEnd={onCompositionEnd}
                 placeholder={placeholder}
                 disabled={disabled}
                 className={cn(
