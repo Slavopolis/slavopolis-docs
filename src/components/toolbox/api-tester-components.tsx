@@ -139,6 +139,8 @@ function VolumeControl({
 
   // 点击外部关闭音量控制器
   useEffect(() => {
+    if (!showVolumeSlider) return;
+
     const handleClickOutside = (event: MouseEvent) => {
       if (volumeRef.current && !volumeRef.current.contains(event.target as Node)) {
         setShowVolumeSlider(false);
@@ -147,7 +149,7 @@ function VolumeControl({
 
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+  }, [showVolumeSlider]);
 
   const toggleMute = () => {
     const event = {
@@ -880,6 +882,15 @@ function FilePreview({
   const fileType = getFileType(file);
   const fileUrl = URL.createObjectURL(file);
 
+  // 清理资源
+  useEffect(() => {
+    return () => {
+      if (fileUrl) {
+        URL.revokeObjectURL(fileUrl);
+      }
+    };
+  }, [fileUrl]);
+
   const formatFileSize = (bytes: number) => {
     if (bytes === 0) return '0 Bytes';
     const k = 1024;
@@ -899,10 +910,26 @@ function FilePreview({
     if (media) {
       if (isPlaying) {
         media.pause();
+        setIsPlaying(false);
       } else {
-        media.play();
+        // 尝试播放并处理可能的权限错误
+        const playPromise = media.play();
+        if (playPromise !== undefined) {
+          playPromise
+            .then(() => {
+              console.log('Audio playback started successfully');
+              setIsPlaying(true);
+            })
+            .catch((error) => {
+              console.error('Audio playback failed:', error);
+              setIsPlaying(false);
+              // 如果是权限错误，提示用户需要交互
+              if (error.name === 'NotAllowedError') {
+                alert('音频播放需要用户交互。请再次点击播放按钮。');
+              }
+            });
+        }
       }
-      setIsPlaying(!isPlaying);
     }
   };
 
@@ -1026,14 +1053,26 @@ function FilePreview({
               onLoadedMetadata={handleLoadedMetadata}
               onPlay={() => setIsPlaying(true)}
               onPause={() => setIsPlaying(false)}
-              onError={(e) => console.error('Audio playback error:', e)}
+              onError={(e) => {
+                console.error('Audio playback error:', e);
+                console.error('Audio error details:', {
+                  error: e.currentTarget.error,
+                  networkState: e.currentTarget.networkState,
+                  readyState: e.currentTarget.readyState,
+                  src: e.currentTarget.src
+                });
+              }}
+              onLoadStart={() => console.log('Audio load started')}
+              onCanPlay={() => console.log('Audio can play')}
+              onCanPlayThrough={() => console.log('Audio can play through')}
+              onLoadedData={() => console.log('Audio data loaded')}
               preload="metadata"
               className="hidden"
             />
             <div className="flex items-center gap-3 p-3 bg-white dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-600">
               <button
                 onClick={handlePlayPause}
-                className="p-2 bg-blue-500 hover:bg-blue-600 text-white rounded-full transition-colors"
+                className="p-2 bg-blue-500 hover:bg-blue-600 text-white rounded-full transition-colors disabled:opacity-50"
                 disabled={!duration}
               >
                 {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}

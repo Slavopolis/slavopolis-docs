@@ -115,16 +115,16 @@ function VolumeControl({
 
   // 点击外部关闭音量控制器
   useEffect(() => {
+    if (!showVolumeSlider) return;
+
     const handleClickOutside = (event: MouseEvent) => {
       if (volumeRef.current && !volumeRef.current.contains(event.target as Node)) {
         setShowVolumeSlider(false);
       }
     };
 
-    if (showVolumeSlider) {
-      document.addEventListener('mousedown', handleClickOutside);
-      return () => document.removeEventListener('mousedown', handleClickOutside);
-    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [showVolumeSlider]);
 
   return (
@@ -254,10 +254,26 @@ function ResponseStreamPreview({
     if (media) {
       if (isPlaying) {
         media.pause();
+        setIsPlaying(false);
       } else {
-        media.play();
+        // 尝试播放并处理可能的权限错误
+        const playPromise = media.play();
+        if (playPromise !== undefined) {
+          playPromise
+            .then(() => {
+              console.log('Media playback started successfully');
+              setIsPlaying(true);
+            })
+            .catch((error) => {
+              console.error('Media playback failed:', error);
+              setIsPlaying(false);
+              // 如果是权限错误，提示用户需要交互
+              if (error.name === 'NotAllowedError') {
+                alert('媒体播放需要用户交互。请再次点击播放按钮。');
+              }
+            });
+        }
       }
-      setIsPlaying(!isPlaying);
     }
   };
 
