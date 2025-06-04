@@ -8,7 +8,6 @@ import {
     Calendar,
     Download,
     MapPin,
-    MessageSquare,
     MoreVertical,
     Plus,
     Search,
@@ -180,26 +179,30 @@ export function ChatSessions({
       <div className="flex-1 overflow-y-auto scrollbar-thin">
         {Object.keys(groupedSessions).length === 0 ? (
           <div className="flex flex-col items-center justify-center h-32 text-gray-500 dark:text-gray-400">
-            <MessageSquare className="w-8 h-8 mb-2 opacity-50" />
-            <p className="text-sm">
+            <p className="text-sm text-center">
               {searchQuery ? '没有找到匹配的对话' : '还没有对话记录'}
             </p>
+            {!searchQuery && (
+              <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                点击"新对话"开始你的第一次AI对话
+              </p>
+            )}
           </div>
         ) : (
           <div className="p-2">
             {Object.entries(groupedSessions).map(([group, groupSessions]) => (
-              <div key={group} className="mb-4">
+              <div key={group} className="mb-3">
                 <div className="flex items-center gap-2 px-2 py-1 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
                   <Calendar className="w-3 h-3" />
                   <span>{group}</span>
                 </div>
                 
-                <div className="space-y-1 mt-2">
+                <div className="space-y-1 mt-1">
                   {groupSessions.map((session) => (
                     <div
                       key={session.id}
                       className={cn(
-                        "group relative flex items-start gap-3 p-3 rounded-lg cursor-pointer transition-all duration-200",
+                        "group relative flex items-start gap-2 p-2 rounded-lg cursor-pointer transition-all duration-200",
                         "hover:bg-gray-50 dark:hover:bg-gray-700",
                         currentSessionId === session.id
                           ? "bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-700 border"
@@ -207,18 +210,14 @@ export function ChatSessions({
                       )}
                       onClick={() => onSessionSelect(session.id)}
                     >
-                      <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-transparent flex items-center justify-center shadow-sm">
-                        <MessageSquare className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-                      </div>
-
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between mb-1">
-                          <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
+                          <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate pr-2">
                             {session.title || generateSessionTitle(getMessagePreview(session))}
                           </h3>
                           
                           {/* 操作菜单 */}
-                          <div className="relative">
+                          <div className="relative flex-shrink-0">
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
@@ -258,15 +257,15 @@ export function ChatSessions({
                           </div>
                         </div>
                         
-                        <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                        <p className="text-xs text-gray-500 dark:text-gray-400 truncate mb-1">
                           {getMessagePreview(session)}
                         </p>
                         
-                        <div className="flex items-center justify-between mt-2">
-                          <span className="text-xs text-gray-400">
+                        <div className="flex items-center justify-between text-xs text-gray-400">
+                          <span>
                             {formatTime(session.updatedAt)}
                           </span>
-                          <span className="text-xs text-gray-400">
+                          <span>
                             {session.messages.filter(m => m.role !== 'system').length} 条消息
                           </span>
                         </div>
