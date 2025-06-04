@@ -19,7 +19,7 @@ export interface TimelineItem {
  */
 export const timelineData: TimelineItem[] = [
   {
-    title: "2024年12月 - AI聊天助手",
+    title: "2025年6月 - AI聊天助手",
     content: React.createElement('div', null,
       React.createElement('p', { 
         className: "mb-8 text-xs font-normal text-neutral-800 md:text-sm dark:text-neutral-200" 
@@ -53,7 +53,7 @@ export const timelineData: TimelineItem[] = [
     ),
   },
   {
-    title: "2024年11月 - 百宝箱工具集成",
+    title: "2025年5月 - 百宝箱工具集成",
     content: React.createElement('div', null,
       React.createElement('p', { 
         className: "mb-8 text-xs font-normal text-neutral-800 md:text-sm dark:text-neutral-200" 
@@ -100,7 +100,7 @@ export const timelineData: TimelineItem[] = [
     ),
   },
   {
-    title: "2024年10月 - 顶部悬浮菜单",
+    title: "2025年5月 - 顶部悬浮菜单",
     content: React.createElement('div', null,
       React.createElement('p', { 
         className: "mb-8 text-xs font-normal text-neutral-800 md:text-sm dark:text-neutral-200" 
@@ -129,7 +129,7 @@ export const timelineData: TimelineItem[] = [
     ),
   },
   {
-    title: "2024年9月 - Markdown自定义解析",
+    title: "2025年4月 - Markdown自定义解析",
     content: React.createElement('div', null,
       React.createElement('p', { 
         className: "mb-8 text-xs font-normal text-neutral-800 md:text-sm dark:text-neutral-200" 
@@ -166,7 +166,7 @@ export const timelineData: TimelineItem[] = [
     ),
   },
   {
-    title: "2024年8月 - 侧边栏自动渲染",
+    title: "2025年4月 - 侧边栏自动渲染",
     content: React.createElement('div', null,
       React.createElement('p', { 
         className: "mb-8 text-xs font-normal text-neutral-800 md:text-sm dark:text-neutral-200" 
@@ -195,7 +195,7 @@ export const timelineData: TimelineItem[] = [
     ),
   },
   {
-    title: "2024年7月 - 自研搜索引擎集成",
+    title: "2025年4月 - 自研搜索引擎集成",
     content: React.createElement('div', null,
       React.createElement('p', { 
         className: "mb-8 text-xs font-normal text-neutral-800 md:text-sm dark:text-neutral-200" 
@@ -232,7 +232,7 @@ export const timelineData: TimelineItem[] = [
     ),
   },
   {
-    title: "2024年6月 - 项目初始化",
+    title: "2025年3月 - 项目初始化",
     content: React.createElement('div', null,
       React.createElement('p', { 
         className: "mb-8 text-xs font-normal text-neutral-800 md:text-sm dark:text-neutral-200" 
