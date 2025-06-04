@@ -42,7 +42,7 @@ export default async function DocsPage() {
                                 <div className="mb-12">
                                     <MorphingText texts={["Slavopolis", "Documentation"]}/>
                                     <TextAnimate animation="blurInUp" by="character" duration={5}>
-                                        欢迎使用 Slavopolis 静态博客系统文档。这里包含了项目的完整技术文档、安装指南、使用教程和最佳实践。
+                                        WelCome to Slavopolis，这里是都市隶人的技术随笔，记录技术学习过程中的点滴，分享技术学习过程中的心得，记录技术学习过程中的问题，分享技术学习过程中的解决方案。
                                     </TextAnimate>
                                 </div>
 
