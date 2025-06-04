@@ -127,6 +127,19 @@ export const siteConfig = {
         protected: false, // 页面保护开关
         target: "_self", // 当前标签页打开
       },
+      // API 测试器
+      {
+        id: "api-tester",
+        name: "API 测试器",
+        description: "强大的API接口测试工具，支持多种请求方式、参数配置、认证方式等",
+          icon: "icon-api",
+        fallbackIcon: "🔧",
+        href: "/toolbox/api-tester",
+        category: "开发工具",
+        featured: true,
+        protected: false,
+        target: "_self", // 当前标签页打开
+      },
       // 精选图集
     //   {
     //     id: "layout-grid",
