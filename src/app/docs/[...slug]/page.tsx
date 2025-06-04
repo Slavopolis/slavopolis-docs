@@ -158,7 +158,7 @@ export default async function DocsPage({ params }: DocsPageProps) {
       <main className="min-h-screen lg:ml-80 transition-all duration-300" id="docs-main-content">
               <div className="p-4 lg:p-6">
           <div className="mx-auto transition-all duration-300" id="docs-container">
-            <div className="flex gap-8">
+            <div className="flex gap-4">
               {/* 主要内容区域 */}
               <div className="flex-1 min-w-0 transition-all duration-300" id="docs-content">
                 <div className="bg-background/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-border/50 overflow-hidden">
