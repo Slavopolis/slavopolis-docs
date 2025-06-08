@@ -1,127 +1,185 @@
 # Spring Boot Maven 构建
 
-> 在现代企业级 Java 应用开发中，构建效率直接影响开发团队的生产力和项目交付速度。传统的 Maven 构建过程虽然功能完善，但在大型项目和频繁构建场景下，其性能瓶颈日益凸显。Spring Boot 作为主流的企业级开发框架，对构建工具的性能要求更为严格，特别是在微服务架构和持续集成环境中。
+> 在 Java 应用开发中，构建效率直接影响开发团队的生产力和项目交付速度。传统的 Maven 构建过程虽然功能完善，但在大型项目和频繁构建场景下，其性能瓶颈日益凸显。Spring Boot 作为主流的企业级开发框架，对构建工具的性能要求更为严格，特别是在微服务架构和持续集成环境中。
 >
-> Apache Maven 社区针对这一痛点推出了 maven-mvnd 项目，通过创新的守护进程架构和 GraalVM 技术显著提升了构建性能。同时，Maven Wrapper 技术为项目提供了版本一致性和环境独立性的保障。本文将深入分析这两种技术在 Spring Boot 项目中的应用价值，为企业级开发团队提供构建效率优化的技术指导。
+> Apache Maven 社区针对这一痛点推出了 maven-mvnd 项目，通过创新的守护进程架构和 GraalVM 技术显著提升了构建性能。同时，Maven Wrapper 技术为项目提供了版本一致性和环境独立性的保障。
 
-## maven-mvnd 技术深度解析
+## maven-mvnd
 
-### 技术架构与核心原理
+### 技术原理
 
-maven-mvnd 是 Apache Maven 生态系统中的重要创新项目，其设计理念借鉴了 Gradle 的守护进程模式和 Takari 的智能构建技术。该项目的核心目标是在保持完全兼容 Maven 标准的前提下，通过架构优化实现显著的性能提升。
+[maven-mvnd](https://github.com/apache/maven-mvnd) 是 Apache Maven 生态系统中的重要创新项目，其设计理念借鉴了 Gradle 的守护进程模式和 Takari 的智能构建技术。该项目的核心目标是在保持完全兼容 Maven 标准的前提下，通过架构优化实现显著的性能提升。
 
-mvnd 的技术架构基于长驻后台守护进程模式。与传统 Maven 每次构建都需要启动新的 JVM 进程不同，mvnd 维护一个或多个持续运行的守护进程来处理构建请求。这种设计消除了 JVM 启动开销，同时充分利用了 JVM 的运行时优化特性。
+mvnd 的技术架构基于**长驻后台守护进程模式**。与传统 Maven 每次构建都需要启动新的 JVM 进程不同，mvnd 维护一个或多个持续运行的守护进程来处理构建请求。这种设计**消除了 JVM 启动开销，同时充分利用了 JVM 的运行时优化特性**。
 
 守护进程的生命周期管理是 mvnd 的关键技术特性。系统会根据构建负载动态创建和销毁守护进程，确保资源的最优利用。每个守护进程都维护着独立的类加载器缓存和 JIT 编译优化结果，这些缓存在多次构建之间得以保留，显著减少了重复计算的开销。
 
-### 性能优化机制
+### 性能优化
 
-mvnd 的性能优势来源于多个层面的技术优化。首先，JVM 启动成本的消除是最直观的性能提升。传统 Maven 构建中，每次执行都需要启动新的 JVM 进程，这个过程通常需要几秒钟时间。在频繁构建的开发环境中，这种开销累积效应明显。
+mvnd 的性能优势来源于多个层面的技术优化。首先，**JVM 启动成本的消除**是最直观的性能提升。传统 Maven 构建中，每次执行都需要启动新的 JVM 进程，这个过程通常需要几秒钟时间。在频繁构建的开发环境中，这种开销累积效应明显。
 
-类加载器缓存机制是另一个重要的性能优化点。Maven 插件的类文件在首次加载后会被缓存在守护进程中，后续构建可以直接使用缓存的类定义，避免了重复的文件读取和类解析操作。这种缓存机制对于使用大量插件的复杂项目特别有效。
+**类加载器缓存机制**是另一个重要的性能优化点。Maven 插件的类文件在首次加载后会被缓存在守护进程中，后续构建可以直接使用缓存的类定义，避免了重复的文件读取和类解析操作。这种缓存机制对于使用大量插件的复杂项目特别有效。
 
-JIT 编译优化的保留是 mvnd 性能优势的深层技术原因。JVM 的即时编译器会将频繁执行的字节码编译为优化的本地机器码，这个过程在传统 Maven 中每次构建都需要重新进行。mvnd 的守护进程模式使得这些 JIT 优化结果得以在多次构建之间保留，显著提升了执行效率。
+**JIT 编译优化**的保留是 mvnd 性能优势的深层技术原因。JVM 的即时编译器会将频繁执行的字节码编译为优化的本地机器码，这个过程在传统 Maven 中每次构建都需要重新进行。mvnd 的守护进程模式使得这些 JIT 优化结果得以在多次构建之间保留，显著提升了执行效率。
 
-并行构建能力是 mvnd 的另一个重要特性。系统默认使用多核处理器的并行计算能力，构建线程数量由公式 `Math.max(Runtime.getRuntime().availableProcessors() - 1, 1)` 确定。这种并行策略在多模块项目中能够实现显著的时间节省。
+**并行构建能力**是 mvnd 的另一个重要特性。系统默认使用多核处理器的并行计算能力，构建线程数量由公式 `Math.max(Runtime.getRuntime().availableProcessors() - 1, 1)` 确定。这种并行策略在多模块项目中能够实现显著的时间节省。
 
-### 企业级部署与配置
+![](https://bxsb-dev.oss-cn-shanghai.aliyuncs.com/103917178-94ee4500-510d-11eb-9abb-f52dae58a544.gif)
 
-在企业环境中部署 mvnd 需要考虑多个技术和管理因素。安装过程相对简单，mvnd 提供了针对不同操作系统的预编译包，包括 Linux、macOS 和 Windows 版本。企业可以通过包管理工具或直接下载二进制包的方式进行部署。
+### 安装 mvnd
 
-配置管理是企业级使用的重要考量。mvnd 继承了所有 Maven 的配置选项，同时提供了额外的守护进程管理参数。企业可以通过 `mvnd.properties` 配置文件定制守护进程的行为，包括最大进程数量、内存限制和超时设置等关键参数。
+#### 使用 SDKMAN 安装
 
-在持续集成环境中使用 mvnd 需要特别的配置考虑。CI 服务器通常运行多个并发构建任务，mvnd 的守护进程需要合理配置以避免资源竞争。建议为 CI 环境设置专门的 mvnd 配置，包括守护进程数量限制和内存使用控制。
+如果 SDKMAN! 支持您的操作系统，那么：
 
-### Spring Boot 项目优化实践
+```bash
+sdk install mvnd
+```
 
-Spring Boot 项目的构建特点使其特别适合 mvnd 的性能优化。Spring Boot 应用通常包含大量的依赖库和复杂的插件配置，传统 Maven 构建在这种场景下性能瓶颈明显。mvnd 的缓存机制和并行处理能力能够显著改善这种情况。
+> 如果您以前使用过手动安装，请确保中的设置 `~/.m2/mvnd.properties` 仍然有效。使用 SDKMAN! 时，`~/.m2/mvnd.properties` 通常根本不需要该文件，因为 `JAVA_HOME` 和  `MVND_HOME` 均由 SDKMAN! 管理。
 
-在实际的 Spring Boot 项目中，mvnd 的性能提升主要体现在以下几个方面。编译阶段的优化通过 JIT 缓存和类加载器复用实现，特别是在增量编译场景下效果显著。测试执行阶段受益于并行处理和 JVM 优化保留，大型测试套件的执行时间明显缩短。
+#### 使用 Homebrew 安装（推荐）
 
-打包阶段是 Spring Boot 项目构建的重要环节，mvnd 在这个阶段的优化主要通过插件缓存和并行处理实现。Spring Boot Maven 插件的复杂处理逻辑在守护进程模式下能够更好地利用 JVM 优化，生成可执行 JAR 的时间显著减少。
+```bash
+brew install mvndaemon/homebrew-mvnd/mvnd
+```
 
-## Maven Wrapper 技术解析与应用
+> 注意：有两个公式：`mvnd` 安装最新的公式和 `mvnd@1` 安装 1.x 行的公式。
 
-### 技术原理与设计目标
+#### 使用 MacPorts 安装
 
-Maven Wrapper 是 Maven 生态系统中解决版本一致性和环境独立性问题的重要工具。其设计理念是将特定版本的 Maven 运行时与项目代码绑定，确保不同开发环境和构建环境使用相同的 Maven 版本进行构建。
+```bash
+sudo port install mvnd
+```
+
+#### 手动安装
+
+* [从https://downloads.apache.org/maven/mvnd/](https://downloads.apache.org/maven/mvnd/) 下载适合您平台的最新 ZIP
+* 解压到您选择的目录
+* 将目录添加 `bin` 到 `PATH`
+* 或者，如果您不想费心设置环境变量，您可以创建 `~/.m2/mvnd.properties` 并设置该属性：`JAVA_HOME`
+* 测试 `mvnd` 是否有效：
+
+```bash
+$ mvnd --version
+Maven Daemon 0.0.11-linux-amd64 (native)
+Terminal: org.jline.terminal.impl.PosixSysTerminal with pty org.jline.terminal.impl.jansi.osx.OsXNativePty
+Apache Maven 3.6.3 (cecedd343002696d0abb50b32b541b8a6ba2883f)
+Maven home: /home/ppalaga/orgs/mvnd/mvnd/daemon/target/maven-distro
+Java version: 11.0.1, vendor: AdoptOpenJDK, runtime: /home/data/jvm/adopt-openjdk/jdk-11.0.1+13
+Default locale: en_IE, platform encoding: UTF-8
+OS name: "linux", version: "5.6.13-200.fc31.x86_64", arch: "amd64", family: "unix"
+```
+
+> 如果您使用的是 Windows 系统，并看到一条消息 `VCRUNTIME140.dll was not found`，则需要 `vc_redist.x64.exe` 从 https://support.microsoft.com/en-us/help/2977003/the-latest-supported-visual-c-downloads 安装。更多信息请参阅 [oracle/graal#1762 。](https://github.com/oracle/graal/issues/1762)
+
+如果您使用的是 macOS，则需要在解压存档后从所有文件中删除隔离标志：
+
+```bash
+$ xattr -r -d com.apple.quarantine mvnd-xyz-darwin-amd64
+```
+
+### 使用方式
+
+`mvnd` 旨在接受与 stock 相同的命令行选项 `mvn`（加上一些附加选项 - 见下文），例如：
+
+```bash
+mvnd verify
+```
+
+mvnd 具体选项：
+
+* `--status`：列出正在运行的守护进程
+* `--stop`：杀死所有正在运行的守护进程
+* `mvnd --help`：打印完整的选项列表
+
+## 配置说明
+
+可以通过属性文件提供配置。mvnd 从以下位置读取属性文件：
+
+* `MVND_PROPERTIES_PATH` 使用环境变量或 `mvnd.propertiesPath` 系统变量提供的属性路径
+* 本地属性路径位于 `[PROJECT_HOME]/.mvn/mvnd.properties`
+* 用户属性路径位于：`[USER_HOME]/.m2/mvnd.properties`
+* 系统属性路径位于：`[MVND_HOME]/conf/mvnd.properties`
+
+第一个文件中定义的属性将优先于较低排名的文件中指定的属性。
+
+一些特殊属性不遵循上述机制：
+
+* `mvnd.daemonStorage`：此属性定义 mvnd 存储其文件（注册表和守护进程日志）的位置。此属性只能在命令行中定义为系统属性
+* `mvnd.id`：此属性在内部用于标识正在创建的守护进程
+* `mvnd.extClasspath`：指定 Maven 扩展类路径的内部选项
+* `mvnd.coreExtensionFilePath`：内部选项，指定maven扩展配置文件路径
+
+> 有关可用属性的完整列表，请参阅 [/dist/src/main/distro/conf/mvnd.properties](https://github.com/apache/maven-mvnd/blob/master/dist/src/main/distro/conf/mvnd.properties)。
+
+## Maven Wrapper
+
+### 技术原理
+
+[Maven Wrapper](https://maven.apache.org/wrapper/) 是 Maven 生态系统中解决版本一致性和环境独立性问题的重要工具。其设计理念是**将特定版本的 Maven 运行时与项目代码绑定，确保不同开发环境和构建环境使用相同的 Maven 版本进行构建**。
 
 技术实现上，Maven Wrapper 通过一组脚本文件和配置实现自动化的 Maven 下载和管理。当开发者首次运行 mvnw 脚本时，系统会自动下载指定版本的 Maven 到本地缓存目录，后续构建直接使用缓存的 Maven 实例。这种设计消除了手动安装和配置 Maven 的复杂性。
 
 版本控制集成是 Maven Wrapper 的重要特性。mvnw 脚本和相关配置文件可以提交到版本控制系统中，确保团队成员和 CI 环境使用完全一致的构建工具版本。这种一致性对于企业级项目的质量保障具有重要意义。
 
-### Spring Boot 集成最佳实践
+### Spring Boot 集成
 
 Spring Boot 官方强烈推荐使用 Maven Wrapper，Spring Initializr 生成的项目默认包含完整的 Wrapper 配置。这种默认配置体现了 Spring Boot 团队对构建一致性的重视，也为开发团队提供了开箱即用的最佳实践。
 
+![image-20250608200110277](https://bxsb-dev.oss-cn-shanghai.aliyuncs.com/image-20250608200110277.png)
+
 在 Spring Boot 项目中，Maven Wrapper 的配置包含几个关键文件。`mvnw` 和 `mvnw.cmd` 脚本分别适用于类 Unix 系统和 Windows 系统，提供了跨平台的一致性支持。`.mvn/wrapper` 目录包含了 Maven 的具体版本配置和下载地址信息。
+
+```properties
+wrapperVersion=3.3.2
+distributionType=only-script
+distributionUrl=https://repo.maven.apache.org/maven2/org/apache/maven/apache-maven/3.9.9/apache-maven-3.9.9-bin.zip
+```
 
 版本升级策略是使用 Maven Wrapper 的重要考虑因素。当需要升级 Maven 版本时，只需要修改 `maven-wrapper.properties` 文件中的版本配置即可。这种方式确保了版本升级的可控性和可回滚性，降低了升级风险。
 
-### 企业级环境配置
+![image-20250608200230761](https://bxsb-dev.oss-cn-shanghai.aliyuncs.com/image-20250608200230761.png)
 
-在企业级环境中使用 Maven Wrapper 需要考虑网络安全和依赖管理的特殊要求。许多企业环境限制外网访问，需要配置内部的 Maven 仓库镜像。Maven Wrapper 支持通过配置文件指定自定义的下载地址，适应企业的网络安全策略。
+### 相关命令
 
-代理配置是企业环境的另一个重要考虑因素。Maven Wrapper 会继承系统的代理设置，但在某些情况下需要专门的代理配置。企业可以通过 `.mvn/jvm.config` 文件设置 JVM 参数，包括代理服务器配置。
+```bash
+# 安装依赖（MacOS）
+./mvnw clean install
 
-安全审计是企业级使用的重要要求。Maven Wrapper 下载的 Maven 二进制文件需要经过安全扫描和验证，确保没有安全漏洞。企业可以建立内部的 Maven Wrapper 仓库，提供经过审计的 Maven 版本。
+# 或者在 Windows 上
+mvnw.cmd clean install
+```
 
-### IDE 集成与开发体验
+### IDEA 配置
 
-现代集成开发环境对 Maven Wrapper 提供了全面的支持。IntelliJ IDEA 和 Eclipse 都能自动识别项目中的 Maven Wrapper 配置，并使用指定的 Maven 版本进行项目管理和构建。这种集成确保了开发环境和命令行环境的一致性。
+在 IDEA 中的 Maven 配置界面可以设置使用 Maven Wrapper：
 
-IDE 配置的灵活性是 Maven Wrapper 的重要优势。开发者可以在 IDE 中选择使用系统安装的 Maven 或项目专用的 Maven Wrapper，根据具体需求进行切换。这种灵活性对于维护多个不同版本要求的项目特别有用。
+![image-20250608200958525](https://bxsb-dev.oss-cn-shanghai.aliyuncs.com/image-20250608200958525.png)
 
-调试和故障排除在 IDE 环境中更加便捷。IDE 能够显示 Maven Wrapper 的执行日志和错误信息，帮助开发者快速定位和解决构建问题。这种集成的调试体验显著提升了开发效率。
+## mvnd 和 mvnw 总结
 
-## 性能对比与企业级应用场景
+**mvnd vs mvnw 核心差异：**
 
-### 构建性能量化分析
+| 特性         | mvnd (Maven Daemon)   | mvnw (Maven Wrapper) |
+| ------------ | --------------------- | -------------------- |
+| 核心定位     | 高性能构建工具        | 版本管理工具         |
+| 启动方式     | 常驻后台进程          | 按需启动             |
+| 构建速度     | 快（减少 JVM 冷启动） | 常规速度             |
+| 内存占用     | 低（基于 GraalVM）    | 常规 JVM 内存占用    |
+| 版本管理     | 需手动安装            | 自动下载指定版本     |
+| 典型应用场景 | 大型项目/高频构建     | 多版本项目/协作开发  |
 
-在实际的企业级项目中，mvnd 相比传统 Maven 的性能提升效果显著。根据多个企业项目的测试数据，mvnd 在首次构建后的后续构建中能够实现 30% 到 70% 的时间节省，具体提升幅度取决于项目的复杂程度和构建频率。
+**推荐 mvnd 的场景：**
 
-大型多模块项目是 mvnd 性能优势最为明显的应用场景。这类项目通常包含数十个甚至上百个模块，传统 Maven 构建需要为每个模块启动独立的处理过程，而 mvnd 的并行处理和缓存机制能够显著减少总体构建时间。
+* 项目构建耗时较长（>30秒）
+* 需要频繁执行 mvn clean install
+* 使用持续集成环境（如 Jenkins）
+* 本地开发机器内存充足
 
-在持续集成环境中，mvnd 的性能优势更加突出。CI 服务器通常需要处理频繁的构建请求，mvnd 的守护进程模式能够有效利用服务器资源，提高构建吞吐量。测试数据显示，在相同硬件配置下，使用 mvnd 的 CI 服务器能够处理更多的并发构建任务。
+**推荐 mvnw 的场景：**
 
-### 企业级部署策略
-
-企业在部署 mvnd 和 Maven Wrapper 时需要制定综合的策略，平衡性能提升和管理复杂性。推荐的部署策略是在开发环境优先使用 mvnd 提升开发效率，在生产构建环境根据具体需求选择使用 mvnd 或传统 Maven。
-
-团队培训是成功部署的关键因素。开发团队需要了解 mvnd 的工作原理和使用方法，特别是守护进程的管理和故障排除技巧。建议企业建立相应的技术文档和培训材料，确保团队能够有效使用这些工具。
-
-监控和维护策略对于企业级部署至关重要。mvnd 的守护进程需要定期监控和维护，包括内存使用情况、进程健康状态和性能指标。企业应该建立相应的监控机制，及时发现和解决潜在问题。
-
-### 成本效益分析
-
-从企业角度分析，部署 mvnd 和 Maven Wrapper 的成本效益比较favorable。虽然初期需要投入培训和配置成本，但长期来看，构建效率的提升能够带来显著的开发成本节省。特别是在大型开发团队中，每天节省的构建时间累积起来具有可观的经济价值。
-
-风险评估是企业决策的重要考虑因素。mvnd 作为相对较新的技术，在稳定性和生态系统成熟度方面可能存在一定风险。企业需要根据自身的风险承受能力和项目重要程度制定合适的采用策略。
-
-技术投资回报周期通常在部署后的 3 到 6 个月内显现。随着团队对新工具的熟悉程度提高和最佳实践的建立，性能提升效果会逐步优化，投资回报率持续改善。
-
-## 故障排除与最佳实践
-
-### 常见问题诊断
-
-mvnd 在使用过程中可能遇到的常见问题包括守护进程启动失败、内存泄漏和版本兼容性问题。守护进程启动失败通常与系统权限或端口占用有关，可以通过 `mvnd --status` 命令检查进程状态，使用 `mvnd --stop` 命令清理僵死进程。
-
-内存使用问题是 mvnd 部署中需要重点关注的方面。长时间运行的守护进程可能出现内存累积，特别是在处理大型项目时。建议定期重启守护进程或配置合适的内存限制参数来避免这类问题。
-
-版本兼容性问题可能出现在 mvnd 与特定 Maven 插件的交互中。虽然 mvnd 力求完全兼容标准 Maven，但某些插件可能依赖特定的执行环境。遇到兼容性问题时，可以考虑使用传统 Maven 作为备选方案。
-
-### 配置优化建议
-
-针对不同类型的项目，mvnd 的配置参数需要相应调整。对于 CPU 密集型项目，可以适当增加守护进程数量以充分利用多核处理器。对于内存密集型项目，需要合理设置每个守护进程的内存限制，避免系统资源耗尽。
-
-网络配置在企业环境中具有特殊重要性。mvnd 需要访问 Maven 仓库下载依赖，企业网络的代理和防火墙设置可能影响其正常运行。建议在配置文件中明确指定代理服务器和仓库镜像地址。
-
-日志配置对于故障诊断和性能监控非常重要。mvnd 支持详细的日志输出，可以通过配置文件调整日志级别和输出格式。在生产环境中，建议启用适当的日志记录以便于问题追踪和性能分析。
-
-### 企业级治理策略
-
-企业在大规模使用 mvnd 和 Maven Wrapper 时需要建立相应的治理策略。技术标准的制定是治理的重要组成部分，包括工具版本选择、配置参数标准和使用规范等。统一的技术标准有助于降低维护成本和提高团队协作效率。
-
-变更管理流程对于工具升级和配置修改至关重要。任何对 mvnd 配置或 Maven Wrapper 版本的修改都应该经过适当的测试和评审流程，确保不会影响项目的稳定性和构建一致性。
-
-知识管理和经验共享是提升整体效率的重要手段。企业应该建立技术知识库，记录最佳实践、常见问题解决方案和性能优化经验。定期的技术分享和培训有助于团队能力的持续提升。
+* 需要精确控制 Maven 版本
+* 多项目使用不同 Maven 版本
+* 新成员快速上手项目
+* 部署环境限制（无 Maven 安装权限）
