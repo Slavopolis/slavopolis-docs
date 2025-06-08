@@ -20,7 +20,7 @@ function Calendar({
       className={cn("p-3", className)}
       classNames={{
         root: "rdp-root",
-        caption: "flex justify-center relative items-center",
+        caption: "flex justify-center relative items-center mb-2",
         caption_label: "text-sm font-medium",
         nav: "space-x-1 flex items-center",
         nav_button: cn(
@@ -29,16 +29,20 @@ function Calendar({
         ),
         nav_button_previous: "absolute left-1",
         nav_button_next: "absolute right-1",
+        month: "space-y-1",
+        month_grid: "w-full border-collapse",
+        weekdays: "hidden",
+        week: "flex w-full mt-1",
         day: cn(
           buttonVariants({ variant: "ghost" }),
-          "p-0 font-normal aria-selected:opacity-100"
+          "h-8 w-8 p-0 font-normal text-sm aria-selected:opacity-100"
         ),
+        day_button: "h-8 w-8 p-0 font-normal text-sm",
         day_selected:
           "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground",
-        day_today: "bg-accent text-accent-foreground",
-        day_outside:
-          "text-muted-foreground opacity-50",
-        day_disabled: "text-muted-foreground opacity-50",
+        day_today: "bg-accent text-accent-foreground font-medium",
+        day_outside: "text-muted-foreground opacity-30",
+        day_disabled: "text-muted-foreground opacity-30",
         day_hidden: "invisible",
         ...classNames,
       }}

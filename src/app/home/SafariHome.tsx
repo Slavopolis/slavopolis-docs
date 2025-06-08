@@ -6,7 +6,7 @@ export function SafariHome() {
             <Safari
                 url="magicui.design"
                 className="size-full"
-                imageSrc="https://bxsb-dev.oss-cn-shanghai.aliyuncs.com/%E6%88%AA%E5%B1%8F2025-05-29%2021.30.06.png"
+                imageSrc="https://bxsb-dev.oss-cn-shanghai.aliyuncs.com/20250608121633014.png"
             />
         </div>
     );

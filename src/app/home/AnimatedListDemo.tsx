@@ -14,31 +14,31 @@ interface Item {
 
 let notifications = [
     {
-        name: "AI聊天助手",
-        description: "Slavopolis Tool",
+        name: "SpringBoot",
+        description: "Slavopolis Spring Stack",
         time: "15m ago",
-        icon: "icon-deepseek",
+        icon: "icon-spring",
         color: "#00C9A7",
     },
     {
-        name: "站点导航",
-        description: "Slavopolis Tool",
+        name: "SpringCloud",
+        description: "Slavopolis Spring Stack",
         time: "10m ago",
-        icon: "icon-baibaoxiangxuanzhongzhuangtai",
+        icon: "icon-spring",
         color: "#FFB800",
     },
     {
-        name: "时间轴",
-        description: "Slavopolis Tool",
+        name: "SpringAI",
+        description: "Slavopolis Spring Stack",
         time: "5m ago",
-        icon: "icon-shijian",
+        icon: "icon-spring",
         color: "#FF3D71",
     },
     {
-        name: "JSON格式化",
-        description: "Slavopolis Tool",
+        name: "SpringWeb",
+        description: "Slavopolis Spring Stack",
         time: "2m ago",
-        icon: "icon-json",
+        icon: "icon-spring",
         color: "#1E86FF",
     },
 ];
@@ -59,13 +59,13 @@ const Notification = ({ name, description, icon, color, time }: Item) => {
             )}
         >
             <div className="flex flex-row items-center gap-3">
-                <div
-                    className="flex size-10 items-center justify-center rounded-2xl"
-                    style={{
-                        backgroundColor: color,
-                    }}
-                >
-                    <Icon name={icon} className="text-white text-lg" fallback="•" />
+                <div className="flex size-12 items-center justify-center">
+                    <Icon 
+                        name={icon} 
+                        className="text-2xl transition-colors duration-200" 
+                        style={{ color: color }}
+                        fallback="•" 
+                    />
                 </div>
                 <div className="flex flex-col overflow-hidden">
                     <figcaption className="flex flex-row items-center whitespace-pre text-lg font-medium dark:text-white ">

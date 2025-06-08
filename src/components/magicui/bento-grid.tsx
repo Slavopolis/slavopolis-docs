@@ -1,6 +1,7 @@
 import { ArrowRightIcon } from "@radix-ui/react-icons";
 import { ComponentPropsWithoutRef, ReactNode } from "react";
 
+import { Icon } from "@/components/iconfont-loader";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -13,7 +14,7 @@ interface BentoCardProps extends ComponentPropsWithoutRef<"div"> {
   name: string;
   className: string;
   background: ReactNode;
-  Icon: React.ElementType;
+  Icon: string;
   description: string;
   href: string;
   cta: string;
@@ -37,7 +38,7 @@ const BentoCard = ({
   name,
   className,
   background,
-  Icon,
+  Icon: iconName,
   description,
   href,
   cta,
@@ -57,7 +58,22 @@ const BentoCard = ({
   >
     <div>{background}</div>
     <div className="pointer-events-none z-10 flex transform-gpu flex-col gap-1 p-6 transition-all duration-300 group-hover:-translate-y-10">
-      <Icon className="h-12 w-12 origin-left transform-gpu text-neutral-700 transition-all duration-300 ease-in-out group-hover:scale-75" />
+      <Icon 
+        name={iconName}
+        className={cn(
+          "origin-left transform-gpu transition-all duration-500 ease-in-out",
+          "group-hover:scale-90 group-hover:rotate-6",
+          "drop-shadow-lg filter",
+          // 悬停时增强阴影效果
+          "group-hover:drop-shadow-[0_15px_35px_rgba(0,0,0,0.25)]",
+          "dark:group-hover:drop-shadow-[0_15px_35px_rgba(255,255,255,0.15)]",
+        )}
+        style={{
+          width: '4rem',
+          height: '4rem',
+          transition: 'all 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+        }}
+      />
       <h3 className="text-xl font-semibold text-neutral-700 dark:text-neutral-300">
         {name}
       </h3>

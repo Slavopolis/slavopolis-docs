@@ -14,7 +14,7 @@ export function MacbookScrollDemo() {
                         <Badge className="h-10 w-10 transform -rotate-12" />
                     </a>
                 }
-                src={`https://bxsb-dev.oss-cn-shanghai.aliyuncs.com/%E6%88%AA%E5%B1%8F2025-05-29%2021.31.05.png`}
+                src={`https://bxsb-dev.oss-cn-shanghai.aliyuncs.com/20250608121452889.png`}
                 showGradient={false}
             />
         </div>

@@ -453,11 +453,11 @@ function CustomImage({ src, alt, title, ...props }: CustomImageProps) {
                     />
                 )}
             </span>
-            {alt && (
+            {/* {alt && (
                 <span className="mt-2 text-center text-sm text-gray-600 dark:text-gray-400 italic block">
                     {alt}
                 </span>
-            )}
+            )} */}
         </span>
     );
 }

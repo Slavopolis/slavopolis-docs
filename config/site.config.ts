@@ -40,7 +40,7 @@ export const siteConfig = {
     // 阿里巴巴矢量图标库配置
     iconfont: {
       // 项目链接，用户可以配置自己的 iconfont 项目
-          projectUrl: process.env.NEXT_PUBLIC_ICONFONT_URL || "//at.alicdn.com/t/c/font_4906716_tnyoxspaqhs.js",
+          projectUrl: process.env.NEXT_PUBLIC_ICONFONT_URL || "//at.alicdn.com/t/c/font_4906716_hozg9qr3pj.js",
       // 是否启用
       enabled: true,
       // 前缀

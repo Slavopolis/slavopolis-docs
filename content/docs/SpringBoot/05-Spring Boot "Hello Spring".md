@@ -1,12 +1,13 @@
 # Spring Boot "Hello Spring"
 
-> Spring Boot 的核心价值在于其简化企业级 Java 应用开发的能力，而这种简化最直观的体现就是创建第一个 "Hello World" 应用的便捷性。从传统 Spring 应用需要大量 XML 配置和复杂的项目结构，到 Spring Boot 应用只需几行代码即可启动，这种转变代表了现代 Java 开发范式的重要进步。
+> Spring Boot 的核心价值在于其简化 Java 应用开发的能力，而这种简化最直观的体现就是创建第一个 "Hello World" 应用的便捷性。从传统 Spring 应用需要大量 XML 配置和复杂的项目结构，到 Spring Boot 应用只需几行代码即可启动，这种转变代表了现代 Java 开发范式的重要进步。
 >
-> 本文将通过详细的步骤指导，展示如何快速创建并运行一个 Spring Boot Web 应用，从环境准备到项目部署的完整流程。通过这个实践过程，开发者将深入理解 Spring Boot 的核心概念，包括自动配置、起步依赖和嵌入式服务器等关键特性。
 
-## 环境准备与先决条件
+## 环境准备
 
 ### Java 开发环境验证
+
+> 相关文档：[安装手册 - Java 安装指南](/docs/安装手册/java)
 
 在开始 Spring Boot 应用开发之前，需要确保本地环境已正确安装 Java 开发工具包。Spring Boot 3.x 系列要求 Java 17 或更高版本作为运行环境。
 
@@ -22,6 +23,8 @@ OpenJDK 64-Bit Server VM (build 17.0.4.1+1-LTS, mixed mode, sharing)
 正确的 Java 版本输出表明开发环境已就绪。建议使用 OpenJDK 17 LTS 版本，该版本提供了长期技术支持和稳定的性能表现。
 
 ### 构建工具安装配置
+
+> 相关文档：[安装手册 - Maven 安装指南](/docs/安装手册/maven)
 
 Spring Boot 支持 Maven 和 Gradle 两种主流构建工具。Maven 作为 Java 生态系统中最广泛使用的构建工具，提供了成熟的依赖管理和项目构建能力。
 

@@ -1,5 +1,3 @@
-import { CalendarIcon, FileTextIcon } from "@radix-ui/react-icons";
-import { PackageIcon, Share2Icon } from "lucide-react";
 
 import { BentoCard, BentoGrid } from "@/components/magicui/bento-grid";
 import { Marquee } from "@/components/magicui/marquee";
@@ -10,32 +8,32 @@ import { AnimatedListDemo } from "./AnimatedListDemo";
 
 const files = [
     {
-        name: "安装手册.md",
-        body: "详细介绍如何在各种操作系统上安装和配置 Slavopolis 文档系统，包括环境要求和常见问题解决方案。",
+        name: "Spring Framework 核心.md",
+        body: "深入剖析 Spring Framework 核心特性，包括 IoC 容器、AOP 切面编程、事务管理等企业级开发必备知识点。",
     },
     {
-        name: "MarkDown语法.md",
-        body: "全面的 Markdown 语法指南，包括标题、列表、链接、图片、表格、代码块等元素的使用方法和最佳实践。",
+        name: "MySQL 性能优化.md",
+        body: "MySQL 数据库性能调优实战指南，涵盖索引优化、查询优化、架构设计等生产环境最佳实践经验分享。",
     },
     {
-        name: "配置手册.md",
-        body: "Slavopolis 文档系统的高级配置选项说明，包括主题定制、插件扩展、自定义样式和性能优化等内容。",
+        name: "JVM 调优实战.md",
+        body: "JVM 虚拟机深度调优实战，包括内存管理、垃圾收集器选择、性能监控和问题排查等核心技能。",
     },
     {
-        name: "内建组件.md",
-        body: "系统预置的各类 UI 组件使用指南，包括按钮、表单、卡片、导航等元素的属性、事件和样式定制方法。",
+        name: "微服务架构设计.md",
+        body: "企业级微服务架构设计模式，包括服务拆分、分布式事务、服务治理和高可用架构设计等实践经验。",
     },
     {
-        name: "搜索引擎.md",
-        body: "强大的内置搜索功能使用说明，支持全文检索、语义分析、关键词过滤和高级查询语法，提升文档检索效率。",
+        name: "分布式系统实践.md",
+        body: "分布式系统核心理论与实践，涵盖 CAP 定理、一致性算法、分布式锁和消息队列等核心技术栈。",
     },
 ];
 
 const features = [
     {
-        Icon: FileTextIcon,
-        name: "MarkDown 文档高效渲染",
-        description: "自动解析渲染 content 下的各类 .md 和 .mdx 文档，只需要专注于创作.",
+        Icon: "icon-java",
+        name: "Java 生态技术文档",
+        description: "深度解析 Java 生态核心技术栈，包括 Spring 全家桶、JVM 调优、分布式系统等企业级开发实战经验分享。",
         href: "#",
         cta: "Learn more",
         className: "col-span-3 lg:col-span-1",
@@ -68,9 +66,9 @@ const features = [
         ),
     },
     {
-        Icon: PackageIcon,
-        name: "百宝箱一站式集成",
-        description: "集成各类实用工具，包括 AI 聊天、站点导航、时间轴、JSON 格式化等，提升工作效率。",
+        Icon: "icon-spring",
+        name: "SpringBoot 项目框架快速入门",
+        description: "SpringBoot、SpringCloud、SpringAI 等现代化框架快速上手指南，助力企业级项目快速开发与部署。",
         href: "#",
         cta: "Learn more",
         className: "col-span-3 lg:col-span-2",
@@ -79,9 +77,9 @@ const features = [
         ),
     },
     {
-        Icon: Share2Icon,
-        name: "不断集成完善 AI 能力",
-        description: "不断集成各类实用工具，提升工作效率，完善 AI 能力。",
+        Icon: "icon-yingyongguanli",
+        name: "不断完善日常Java生态技术栈",
+        description: "持续更新 Java 生态技术栈内容，涵盖最新框架特性、最佳实践和生产环境解决方案。",
         href: "#",
         cta: "Learn more",
         className: "col-span-3 lg:col-span-2",
@@ -90,7 +88,7 @@ const features = [
         ),
     },
     {
-        Icon: CalendarIcon,
+        Icon: "icon-icon--date",
         name: "持续更新",
         description: "持续更新，保持最新状态。",
         className: "col-span-3 lg:col-span-1",

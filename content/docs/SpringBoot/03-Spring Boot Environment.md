@@ -1,8 +1,8 @@
 # Spring Boot 环境要求
 
-> Spring Boot 3.x 系列作为现代企业级 Java 应用开发的主流框架，其环境要求和集成方式的选择直接影响项目的开发效率、运行性能和长期维护成本。随着 Java 平台的持续演进和容器化技术的普及，正确理解和配置 Spring Boot 3.x 的运行环境变得尤为重要。
+> Spring Boot 3.x 系列作为现代 Java 应用开发的主流框架，其环境要求和集成方式的选择直接影响项目的开发效率、运行性能和长期维护成本。随着 Java 平台的持续演进和容器化技术的普及，正确理解和配置 Spring Boot 3.x 的运行环境变得尤为重要。
 >
-> 本文将深入分析 Spring Boot 3.x 系列的环境要求，详细对比各主流版本与 JDK、构建工具和嵌入式服务器的最佳搭配方案，并深度剖析 Maven 集成中继承 `spring-boot-starter-parent` 父项目与导入 `spring-boot-dependencies` 依赖管理的技术差异和选择策略。通过系统性的技术分析，为企业级应用的技术栈选择提供权威的决策依据。
+> 本文将分析 Spring Boot 3.x 系列的环境要求，详细对比各主流版本与 JDK、构建工具和嵌入式服务器的最佳搭配方案，并剖析 Maven 集成中继承 `spring-boot-starter-parent` 父项目与导入 `spring-boot-dependencies` 依赖管理的技术差异和选择策略。
 
 ## Spring Boot 3.x 环境要求
 
