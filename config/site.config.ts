@@ -40,7 +40,7 @@ export const siteConfig = {
     // 阿里巴巴矢量图标库配置
     iconfont: {
       // 项目链接，用户可以配置自己的 iconfont 项目
-          projectUrl: process.env.NEXT_PUBLIC_ICONFONT_URL || "//at.alicdn.com/t/c/font_4906716_hozg9qr3pj.js",
+          projectUrl: process.env.NEXT_PUBLIC_ICONFONT_URL || "//at.alicdn.com/t/c/font_4906716_wk1nps03939.js",
       // 是否启用
       enabled: true,
       // 前缀
@@ -140,6 +140,19 @@ export const siteConfig = {
         protected: false,
         target: "_self", // 当前标签页打开
       },
+        // 软件推荐
+        {
+            id: "software-recommendation",
+            name: "软件推荐",
+            description: "精选开发软件工具",
+            icon: "icon-software",
+            fallbackIcon: "🔧",
+            href: "/toolbox/software-recommendation",
+            category: "开发工具",
+            featured: true,
+            protected: false,
+            target: "_self", // 当前标签页打开
+        },
       // 精选图集
     //   {
     //     id: "layout-grid",

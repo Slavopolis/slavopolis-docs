@@ -19,6 +19,62 @@ export interface TimelineItem {
  */
 export const timelineData: TimelineItem[] = [
   {
+    title: "2025年6月8日 - 开发者软件推荐",
+    content: React.createElement('div', null,
+      React.createElement('p', { 
+        className: "mb-8 text-xs font-normal text-neutral-800 md:text-sm dark:text-neutral-200" 
+      }, "精心打造开发者软件推荐平台，汇集编程开发领域优质软件工具，提升开发效率和体验"),
+      React.createElement('div', { className: "mb-6" },
+        React.createElement('div', { 
+          className: "flex items-center gap-2 text-xs text-neutral-700 md:text-sm dark:text-neutral-300" 
+        }, "✅ 20+精选开发软件"),
+        React.createElement('div', { 
+          className: "flex items-center gap-2 text-xs text-neutral-700 md:text-sm dark:text-neural-300" 
+        }, "✅ 8大分类体系 (IDE、数据库、版本控制、API测试等)"),
+        React.createElement('div', { 
+          className: "flex items-center gap-2 text-xs text-neutral-700 md:text-sm dark:text-neutral-300" 
+        }, "✅ 智能搜索与筛选"),
+        React.createElement('div', { 
+          className: "flex items-center gap-2 text-xs text-neutral-700 md:text-sm dark:text-neutral-300" 
+        }, "✅ 图片轮播预览系统"),
+        React.createElement('div', { 
+          className: "flex items-center gap-2 text-xs text-neutral-700 md:text-sm dark:text-neutral-300" 
+        }, "✅ 软件详情弹窗"),
+        React.createElement('div', { 
+          className: "flex items-center gap-2 text-xs text-neutral-700 md:text-sm dark:text-neutral-300" 
+        }, "✅ 多平台支持标识"),
+        React.createElement('div', { 
+          className: "flex items-center gap-2 text-xs text-neutral-700 md:text-sm dark:text-neutral-300" 
+        }, "✅ 评分和标签系统"),
+        React.createElement('div', { 
+          className: "flex items-center gap-2 text-xs text-neutral-700 md:text-sm dark:text-neutral-300" 
+        }, "✅ 响应式卡片布局")
+      ),
+      React.createElement('div', { className: "grid grid-cols-2 gap-4" },
+        React.createElement('div', { 
+          className: "h-20 w-full rounded-lg bg-gradient-to-br from-indigo-500 to-purple-500 shadow-lg md:h-44 lg:h-60 flex items-center justify-center" 
+        },
+          React.createElement('span', { className: "text-white font-semibold" }, "软件推荐卡片")
+        ),
+        React.createElement('div', { 
+          className: "h-20 w-full rounded-lg bg-gradient-to-br from-emerald-500 to-teal-500 shadow-lg md:h-44 lg:h-60 flex items-center justify-center" 
+        },
+          React.createElement('span', { className: "text-white font-semibold" }, "分类筛选系统")
+        ),
+        React.createElement('div', { 
+          className: "h-20 w-full rounded-lg bg-gradient-to-br from-orange-500 to-red-500 shadow-lg md:h-44 lg:h-60 flex items-center justify-center" 
+        },
+          React.createElement('span', { className: "text-white font-semibold" }, "图片轮播预览")
+        ),
+        React.createElement('div', { 
+          className: "h-20 w-full rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500 shadow-lg md:h-44 lg:h-60 flex items-center justify-center" 
+        },
+          React.createElement('span', { className: "text-white font-semibold" }, "智能搜索引擎")
+        )
+      )
+    ),
+  },
+  {
     title: "2025年6月 - AI聊天助手",
     content: React.createElement('div', null,
       React.createElement('p', { 
